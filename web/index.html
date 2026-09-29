@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Toolkit</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%232f6fed%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <nav id="nav">
+    <h1>PDF Toolkit</h1>
+    <button data-tab="merge" class="active">Merge</button>
+    <button data-tab="split">Split / Extract</button>
+    <button data-tab="organize">Organize pages</button>
+    <button data-tab="compress">Compress</button>
+    <button data-tab="toPdf">Convert to PDF</button>
+    <button data-tab="fromPdf">PDF to other</button>
+    <button data-tab="images">Image converter</button>
+    <button data-tab="extras">Watermark / Numbers / Info</button>
+    <p class="note">100% offline. Files never leave your computer.</p>
+  </nav>
+
+  <main>
+    <!-- MERGE -->
+    <section id="merge" class="panel active">
+      <h2>Merge</h2>
+      <p class="hint">Combine PDFs into one. Images, Word, Excel, PowerPoint, text, Markdown and HTML files are converted automatically. Use the arrows to reorder.</p>
+      <div class="drop" data-target="merge">Drop files here or click to choose</div>
+      <ul class="files" id="merge-list"></ul>
+      <div class="row"><button class="primary" id="merge-go">Merge</button></div>
+      <div class="status" id="merge-status"></div>
+    </section>
+
+    <!-- SPLIT -->
+    <section id="split" class="panel">
+      <h2>Split / Extract</h2>
+      <div class="drop" data-target="split">Drop a PDF here or click to choose</div>
+      <p class="hint" id="split-info"></p>
+      <div class="row">
+        <label>Mode
+          <select id="split-mode">
+            <option value="ranges">Custom ranges (one file per range)</option>
+            <option value="extract">Extract pages into one file</option>
+            <option value="every">Every N pages</option>
+            <option value="each">Every page separately</option>
+            <option value="remove">Remove pages</option>
+          </select>
+        </label>
+        <label id="split-ranges-l">Pages <input id="split-ranges" placeholder="e.g. 1-3, 5, 8-"></label>
+        <label id="split-n-l" hidden>N <input id="split-n" type="number" min="1" value="1"></label>
+      </div>
+      <div class="row"><button class="primary" id="split-go">Split</button></div>
+      <div class="status" id="split-status"></div>
+    </section>
+
+    <!-- ORGANIZE -->
+    <section id="organize" class="panel">
+      <h2>Organize pages</h2>
+      <p class="hint">Rotate, delete, reorder pages or add blank pages, then save.</p>
+      <div class="drop" data-target="organize">Drop a PDF here or click to choose</div>
+      <div class="row">
+        <button id="org-rotl">Rotate all ⟲</button>
+        <button id="org-rotr">Rotate all ⟳</button>
+        <button id="org-blank">Add blank page at end</button>
+        <button id="org-reverse">Reverse order</button>
+        <button class="primary" id="org-go">Save PDF</button>
+      </div>
+      <div class="thumbs" id="org-thumbs"></div>
+      <div class="status" id="org-status"></div>
+    </section>
+
+    <!-- COMPRESS -->
+    <section id="compress" class="panel">
+      <h2>Compress</h2>
+      <div class="drop" data-target="compress">Drop PDFs here or click to choose</div>
+      <ul class="files" id="compress-list"></ul>
+      <div class="row">
+        <label>Level
+          <select id="compress-level">
+            <option value="lossless">Lossless optimize (keeps text &amp; quality)</option>
+            <option value="medium" selected>Medium (images ~110 dpi, JPEG 70%)</option>
+            <option value="high">High (~72 dpi, JPEG 50%)</option>
+            <option value="extreme">Extreme (~50 dpi, JPEG 35%)</option>
+          </select>
+        </label>
+        <button class="primary" id="compress-go">Compress</button>
+      </div>
+      <p class="hint">Medium/High/Extreme rasterize each page to a JPEG, so text is no longer selectable. The original is kept if the result is not smaller.</p>
+      <div class="status" id="compress-status"></div>
+    </section>
+
+    <!-- CONVERT TO PDF -->
+    <section id="toPdf" class="panel">
+      <h2>Convert to PDF</h2>
+      <p class="hint">Images (JPG, PNG, WebP, GIF, BMP, SVG, AVIF), Word (.docx), Excel/CSV (.xlsx .xls .ods .csv), PowerPoint (.pptx, text only), Markdown, HTML, and text files (.txt .log .json .xml …).</p>
+      <div class="drop" data-target="toPdf">Drop files here or click to choose</div>
+      <ul class="files" id="toPdf-list"></ul>
+      <div class="row">
+        <label>Page size
+          <select id="topdf-size">
+            <option value="a4">A4</option>
+            <option value="letter">Letter</option>
+            <option value="fit">Fit image (images only)</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="topdf-combine"> Combine into one PDF</label>
+        <button class="primary" id="toPdf-go">Convert</button>
+      </div>
+      <div class="status" id="toPdf-status"></div>
+    </section>
+
+    <!-- PDF TO OTHER -->
+    <section id="fromPdf" class="panel">
+      <h2>PDF to other formats</h2>
+      <div class="drop" data-target="fromPdf">Drop a PDF here or click to choose</div>
+      <p class="hint" id="from-info"></p>
+      <div class="row">
+        <label>Format
+          <select id="from-fmt">
+            <option value="png">Images (PNG)</option>
+            <option value="jpg">Images (JPG)</option>
+            <option value="webp">Images (WebP)</option>
+            <option value="txt">Text (.txt)</option>
+            <option value="docx">Word (.docx, text only)</option>
+            <option value="html">HTML (text only)</option>
+          </select>
+        </label>
+        <label id="from-dpi-l">Resolution
+          <select id="from-dpi"><option value="1">72 dpi</option><option value="2" selected>144 dpi</option><option value="3">216 dpi</option><option value="4">288 dpi</option></select>
+        </label>
+        <label>Pages <input id="from-pages" placeholder="all"></label>
+        <button class="primary" id="from-go">Convert</button>
+      </div>
+      <div class="status" id="from-status"></div>
+    </section>
+
+    <!-- IMAGE CONVERTER -->
+    <section id="images" class="panel">
+      <h2>Image converter</h2>
+      <div class="drop" data-target="images">Drop images here or click to choose</div>
+      <ul class="files" id="images-list"></ul>
+      <div class="row">
+        <label>To
+          <select id="img-fmt"><option value="png">PNG</option><option value="jpg">JPG</option><option value="webp">WebP</option></select>
+        </label>
+        <label>Quality <input id="img-q" type="number" min="1" max="100" value="90"></label>
+        <label>Max width (px) <input id="img-w" type="number" min="0" placeholder="original"></label>
+        <button class="primary" id="images-go">Convert</button>
+      </div>
+      <div class="status" id="images-status"></div>
+    </section>
+
+    <!-- EXTRAS -->
+    <section id="extras" class="panel">
+      <h2>Watermark, page numbers &amp; info</h2>
+      <div class="drop" data-target="extras">Drop a PDF here or click to choose</div>
+      <p class="hint" id="extras-info"></p>
+      <fieldset>
+        <legend>Text watermark</legend>
+        <div class="row">
+          <label>Text <input id="wm-text" placeholder="CONFIDENTIAL"></label>
+          <label>Opacity <input id="wm-op" type="number" min="5" max="100" value="25"></label>
+          <label>Size <input id="wm-size" type="number" min="8" value="72"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Page numbers</legend>
+        <div class="row">
+          <label><input type="checkbox" id="pn-on"> Add page numbers</label>
+          <label>Position
+            <select id="pn-pos"><option value="bc">Bottom center</option><option value="br">Bottom right</option><option value="bl">Bottom left</option><option value="tc">Top center</option><option value="tr">Top right</option></select>
+          </label>
+          <label>Format <input id="pn-fmt" value="{n} / {total}"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Document info</legend>
+        <div class="row">
+          <label>Title <input id="md-title"></label>
+          <label>Author <input id="md-author"></label>
+          <label>Subject <input id="md-subject"></label>
+          <label>Keywords <input id="md-keywords"></label>
+        </div>
+      </fieldset>
+      <div class="row"><button class="primary" id="extras-go">Apply &amp; save</button></div>
+      <div class="status" id="extras-status"></div>
+    </section>
+  </main>
+</div>
+<input type="file" id="picker" hidden>
+
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/marked.umd.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
