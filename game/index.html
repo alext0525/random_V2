@@ -198,7 +198,7 @@ const ROAD_HALF=6,RUNOFF=16,G=9.81,DT=1/240;
 const CARS=[
  // grip = tyre friction; eng = engine (kW, Nm, rpm of peak torque/power), gearbox ratios, final drive, drag area; steer = steering speed; roll = suspension softness; redline/cyl drive the engine sound
  {name:'Hatchback',color:'#d62839',top:58,acc:6.6,grip:1.12,off:1.0,mass:1150,kind:'hatch',steer:1.0,roll:1.0,redline:6800,cyl:4,eng:{kw:180,nm:360,tqR:3000,pwR:6000,idle:850,gears:[3.38,2.05,1.45,1.12,.92,.78],fd:3.9,cda:.68,shift:.18},desc:'Nimble front-drive, safe and forgiving'},
- {name:'Muscle',color:'#ff8c1a',top:72,acc:8.0,grip:1.0,off:1.0,mass:1650,kind:'muscle',steer:.8,roll:1.4,redline:6400,cyl:8,eng:{kw:340,nm:620,tqR:4400,pwR:6000,idle:700,gears:[2.97,2.07,1.43,1.0,.84,.62],fd:3.42,cda:.82,shift:.22},desc:'Heavy V8, loose rear on throttle'},
+ {name:'Muscle',color:'#ff8c1a',top:72,acc:8.0,grip:1.0,off:1.0,mass:1650,kind:'muscle',steer:.8,roll:1.4,redline:6400,cyl:8,eng:{kw:530,nm:880,tqR:4200,pwR:6100,idle:700,gears:[2.97,2.07,1.43,1.0,.84,.62],fd:3.42,cda:.82,shift:.22},desc:'Supercharged V8 — far more power than grip'},
  {name:'Supercar',color:'#ffc300',top:90,acc:9.6,grip:1.32,off:1.4,mass:1450,kind:'super',steer:1.15,roll:.6,redline:8800,cyl:12,eng:{kw:520,nm:680,tqR:5500,pwR:8000,idle:1000,gears:[3.13,2.19,1.63,1.29,1.03,.84,.69],fd:3.7,cda:.8,shift:.1},desc:'Mid-engine, sharp and planted'},
  {name:'Rally',color:'#1f6feb',top:64,acc:7.8,grip:1.18,off:.3,mass:1250,kind:'rally',steer:1.25,roll:1.1,redline:7500,cyl:4,eng:{kw:224,nm:420,tqR:3500,pwR:6500,idle:900,gears:[3.2,2.2,1.65,1.3,1.06,.9],fd:4.4,cda:.75,shift:.08},desc:'AWD, agile, great on loose ground'},
  {name:'Buggy',color:'#2fbf71',top:52,acc:7.4,grip:.95,off:.12,mass:900,kind:'buggy',steer:1.1,roll:1.8,redline:7000,cyl:4,eng:{kw:150,nm:260,tqR:4500,pwR:6500,idle:850,gears:[3.0,2.0,1.45,1.12,.9],fd:4.1,cda:1.1,shift:.2},desc:'Long-travel off-roader, slides on tarmac'},
@@ -534,7 +534,7 @@ for(const c of CARS){const pf=perf(c);c.top=pf.top;c.t100=pf.t100;c.acc=pf.F0/c.
 function carPhys(spec){
   const ph=PHYS[spec.kind],p=PROF[spec.kind],m=spec.mass,L=p.base,b=ph.wf*L,a=L-b;
   const e=spec.eng,rw=p.wr,cd=.5*1.225*e.cda,F0=e.nm*e.gears[0]*e.fd*.88/rw;
-  return{eng:e,rw,relax:{formula:.25,super:.5,rally:.55}[spec.kind]||.6,a,b,L,h:ph.h,Iz:m*a*b*({muscle:1.7,formula:1.6,rally:1.3,buggy:1.45}[spec.kind]||1.45),F0,cd,df:ph.df,dfm:ph.df/m,drive:ph.drive,bb:ph.bb,ap:ph.ap,stick:{formula:18,super:11,hatch:9,rally:8,buggy:7,muscle:6}[spec.kind],us:{formula:.00006,super:.00012,muscle:.0003}[spec.kind]||.0002};
+  return{eng:e,rw,relax:{formula:.15,super:.4,rally:.5}[spec.kind]||.5,a,b,L,h:ph.h,Iz:m*a*b*({muscle:1.5,formula:1.15,rally:1.2,buggy:1.3}[spec.kind]||1.3),F0,cd,df:ph.df,dfm:ph.df/m,drive:ph.drive,bb:ph.bb,ap:ph.ap,stick:{formula:26,super:14,hatch:11,rally:10,buggy:8,muscle:9}[spec.kind],loose:{muscle:.9,super:.45,rally:.35,buggy:.5,formula:.15}[spec.kind]||0,tcSlack:{muscle:1.3,super:1.0}[spec.kind]||.92,us:{formula:.00006,super:.00012,muscle:.0003}[spec.kind]||.0002};
 }
 // engine torque (Nm) at rpm: rises to the torque peak, holds to where peak power needs it, falls off past peak power
 function engTorque(e,rpm,rl){const tP=e.kw*1000/(e.pwR*Math.PI/30),r=clamp(rpm,e.idle,rl);
@@ -1170,7 +1170,7 @@ function pollPad(){
   const gps=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const g of gps)if(g&&g.connected){gp=g;break}
   if(!gp){pad.active=false;pad.steer=pad.thr=pad.brk=0;pad.hb=false;return}
   const dz=(v,d=.1)=>Math.abs(v)<d?0:Math.sign(v)*(Math.abs(v)-d)/(1-d),bv=i=>gp.buttons[i]?Math.max(gp.buttons[i].value||0,gp.buttons[i].pressed?1:0):0;
-  const sx=dz(gp.axes[0]||0,.08);pad.steer=Math.sign(sx)*Math.pow(Math.abs(sx),2);
+  const sx=dz(gp.axes[0]||0,.08);pad.steer=Math.sign(sx)*Math.pow(Math.abs(sx),1.6);
   pad.thr=Math.max(bv(7),bv(0));pad.brk=Math.max(bv(6),bv(2));pad.hb=bv(1)>.5;
   if(pad.steer||pad.thr>.05||pad.brk>.05)pad.active=true;
   const press=i=>bv(i)>.5&&!pad.prev[i];
@@ -1241,12 +1241,13 @@ function stepCar(c,dt,thr,brk,steer,hb){
   if(brk>0&&u<=.3&&thr===0)drive=u>-8?-.35*P.F0*brk:0;
   let FxF=0,FxR=0;
   if(P.drive==='f')FxF=drive;else if(P.drive==='r')FxR=drive;else{FxF=drive*.4;FxR=drive*.6}
+  const pwr=drive>0?smooth(.75,1.05,FxR/Math.max(1,capR)):0;c.pwr=pwr;
   if(brk>0&&u>.3){const B=brk*mu*(fzF+fzR);FxF-=B*P.bb;FxR-=B*(1-P.bb)}
   if(hb&&u>.3)FxR-=capR*.9;
   c.tcOn=false;
   if(c.assist){
     // traction control + ABS that keep enough grip for cornering
-    const room=(F,Fy,cap)=>Math.sqrt(Math.max(cap*cap*.12,cap*cap-Fy*Fy))*.92;
+    const room=(F,Fy,cap)=>Math.sqrt(Math.max(cap*cap*.12,cap*cap-Fy*Fy))*(F>0?P.tcSlack:.92);
     const rF=room(FxF,FyF,capF),rR=room(FxR,FyR,capR);
     if(Math.abs(FxF)>rF){FxF=Math.sign(FxF)*rF;if(drive>0||brk>0)c.tcOn=true}
     if(Math.abs(FxR)>rR&&!hb){FxR=Math.sign(FxR)*rR;if(drive>0||brk>0)c.tcOn=true}
@@ -1268,7 +1269,8 @@ function stepCar(c,dt,thr,brk,steer,hb){
   // grip rail: inside the tyres' limit the car follows the steered path (yaw + sideslip settle fast, no ice-like drift).
   // stickiness depends on the class (F1 is glued, muscle car stays loose); the handling slider scales it.
   if(spd>1.5&&u>0&&!hb){const gMax=mu*G*(1+P.dfm*u*u/G)*.95,kin=u*u*Math.tan(delta)/L/(1+u*u*P.us),aT=clamp(kin,-gMax,gMax),rT=aT/Math.max(u,1);
-    const st=P.stick*(.3+.7*A)*(c.onRoad?1:.45)*smooth(1.5,6,spd),k=1-Math.exp(-dt*st);r=lerp(r,rT,k);v*=Math.exp(-dt*st*.85)}
+    // turn-in authority is the same on every handling setting; the slider (and a power-saturated rear axle) only lets the car slide more
+    const loose=1-pwr*P.loose,st=P.stick*(c.onRoad?1:.45)*smooth(1.5,6,spd)*loose,k=1-Math.exp(-dt*st);r=lerp(r,rT,k);v*=Math.exp(-dt*st*.85*(.5+.5*A))}
   c.h+=r*dt;c.r=r;
   const nfx=Math.sin(c.h),nfz=Math.cos(c.h);c.vx=nfx*u+nfz*v;c.vz=nfz*u-nfx*v;
   c.x+=c.vx*dt;c.z+=c.vz*dt;c.vf=u;
@@ -1309,10 +1311,10 @@ function aiControl(c,dt){
 function playerControl(c,dt){
   if(c.finished){c.lane=0;c.diff=1;c.assist=true;return aiControl(c,dt)}
   const kb=(keys.ArrowRight||keys.KeyD||touch.right?1:0)-(keys.ArrowLeft||keys.KeyA||touch.left?1:0);
-  if(!kb&&pad.active){const pr=4.5/(1+Math.max(c.vf,0)/30);c.steerIn+=clamp(pad.steer-c.steerIn,-dt*pr,dt*pr);const gas=Math.max(pad.thr,(keys.ArrowUp||keys.KeyW||touch.gas)?1:0);c.thrIn=gas;c.stuck=Math.abs(c.vf)<1.5&&gas>.2?(c.stuck||0)+dt:0;
+  if(!kb&&pad.active){const pr=10/(1+Math.max(c.vf,0)/45);c.steerIn+=clamp(pad.steer-c.steerIn,-dt*pr,dt*pr);const gas=Math.max(pad.thr,(keys.ArrowUp||keys.KeyW||touch.gas)?1:0);c.thrIn=gas;c.stuck=Math.abs(c.vf)<1.5&&gas>.2?(c.stuck||0)+dt:0;
     return[gas,Math.max(pad.brk,(keys.ArrowDown||keys.KeyS||touch.brake)?1:0),c.steerIn,pad.hb||!!keys.Space]}
   const tgt=kb;
-  const sr=(c.spec.steer||1)/(1+Math.max(c.vf,0)/40),rate=(tgt===0?6:(c.steerIn!==0&&Math.sign(tgt)!==Math.sign(c.steerIn)?6:3.2))*sr;
+  const sr=(c.spec.steer||1)/(1+Math.max(c.vf,0)/40),rate=(tgt===0?7:(c.steerIn!==0&&Math.sign(tgt)!==Math.sign(c.steerIn)?7:4.6))*sr;
   c.steerIn+=clamp(tgt-c.steerIn,-rate*dt,rate*dt);
   const gas=(keys.ArrowUp||keys.KeyW||touch.gas)?1:0;c.thrIn=gas?Math.min(1,(c.thrIn||0)+dt*(c.assist?6:2.8)):0;
   c.stuck=Math.abs(c.vf)<1.5&&gas?(c.stuck||0)+dt:0;
@@ -1491,7 +1493,7 @@ function updateCamera(dt){
   const k=1-Math.exp(-dt*9);
   if(!camState.init)camState.yaw=c.h;
   const tgtYaw=c.h+(v>3?wrapA(Math.atan2(c.vx,c.vz)-c.h)*.12:0);
-  camState.yaw+=wrapA(tgtYaw-camState.yaw)*(1-Math.exp(-dt*7));
+  camState.yaw+=wrapA(tgtYaw-camState.yaw)*(1-Math.exp(-dt*10));
   m.updateMatrixWorld(true);
   const inside=mode==='Cockpit'||mode==='Onboard';
   if(m.userData.driver)m.userData.driver.visible=mode!=='Cockpit';
