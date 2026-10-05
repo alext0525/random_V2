@@ -30,8 +30,8 @@ The web UI is in `web/` and embedded into the binary. Libraries in `web/vendor` 
 
 # Sketch Racer (browser game)
 
-Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opponents with individual difficulty, and race. Pseudo-3D arcade style. Single static page in `game/` (no build, no dependencies).
+Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opponents with individual difficulty, and race. Real 3D (three.js from CDN) with grip-based car physics, shadows, reflections and 7 camera views. Single static page in `game/` (no build step).
 
 - **Play locally:** open `game/index.html`.
 - **Play from a link:** merge to `main`, then in the repo go to Settings → Pages → Source: **GitHub Actions**. `.github/workflows/pages.yml` publishes `game/` to `https://<user>.github.io/<repo>/`. Use your browser's "Install / Add to home screen" for a shortcut.
-- **Controls:** ↑/W gas, ↓/S brake, ←→/A D steer, P pause, M mute, R restart, Esc menu. Touch buttons appear on phones.
+- **Controls:** ↑/W throttle, ↓/S brake/reverse, ←→/A D steer, Space handbrake, C or 1–7 camera (chase, far chase, hood, bumper, cockpit, TV, helicopter), R reset car, P/Esc pause, M mute. Touch buttons appear on phones.
