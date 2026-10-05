@@ -25,3 +25,13 @@ A Windows `.exe` that opens a PDF toolbox in your browser. Everything runs local
 ./build.sh          # writes dist/PDFToolkit.exe (Windows) and dist/pdftoolkit (Linux)
 ```
 The web UI is in `web/` and embedded into the binary. Libraries in `web/vendor` (pdf-lib, pdf.js, JSZip, mammoth, SheetJS, marked, html2canvas) are bundled, so no internet is needed.
+
+---
+
+# Sketch Racer (browser game)
+
+Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opponents with individual difficulty, and race. Pseudo-3D arcade style. Single static page in `game/` (no build, no dependencies).
+
+- **Play locally:** open `game/index.html`.
+- **Play from a link:** merge to `main`, then in the repo go to Settings → Pages → Source: **GitHub Actions**. `.github/workflows/pages.yml` publishes `game/` to `https://<user>.github.io/<repo>/`. Use your browser's "Install / Add to home screen" for a shortcut.
+- **Controls:** ↑/W gas, ↓/S brake, ←→/A D steer, P pause, M mute, R restart, Esc menu. Touch buttons appear on phones.

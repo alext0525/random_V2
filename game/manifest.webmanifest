@@ -1,0 +1,11 @@
+{
+  "name": "Sketch Racer",
+  "short_name": "Sketch Racer",
+  "description": "Draw a track, tune hills and corners, race AI opponents.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0e1020",
+  "theme_color": "#0e1020",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
