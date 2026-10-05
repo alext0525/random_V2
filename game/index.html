@@ -73,9 +73,51 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:8px}
 #h-msg{font-size:40px;color:var(--ok)}
 #h-wrong{position:absolute;top:38%;left:0;right:0;text-align:center;font-size:48px;color:#ff4d6d;display:none}
 #hint{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:12px;color:#fffa;font-family:system-ui;font-style:normal;white-space:nowrap}
-#touch{position:absolute;inset:auto 0 0 0;display:none;justify-content:space-between;align-items:flex-end;padding:12px;pointer-events:none}
-#touch div{display:flex;gap:10px}
-#touch button{pointer-events:auto;width:80px;height:80px;border-radius:50%;font-size:28px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.4);padding:0;touch-action:none;user-select:none;-webkit-user-select:none}
+/* ---- touch controls (phones / tablets, portrait + landscape) ---- */
+#game{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#touch{position:absolute;inset:0;display:none;pointer-events:none;font-family:system-ui;font-style:normal}
+#touch button{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;color:#fff;font-weight:800;background:rgba(14,16,32,.38);border:2px solid rgba(255,255,255,.45);border-radius:16px;padding:0;backdrop-filter:blur(2px)}
+#touch button.dn{background:rgba(255,210,63,.55);border-color:#ffd23f}
+#tSteer{position:absolute;left:0;bottom:0;width:48%;height:42%;pointer-events:auto;touch-action:none}
+#tSteer .rail{position:absolute;left:max(14px,env(safe-area-inset-left));right:8px;bottom:calc(22px + env(safe-area-inset-bottom));height:70px;border-radius:35px;background:rgba(14,16,32,.3);border:2px solid rgba(255,255,255,.3)}
+#tSteer .rail b{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;color:#fff8;font-size:26px}
+#tKnob{position:absolute;top:50%;left:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 2px 10px #0008;transition:transform .05s}
+#tSteer.btns .rail b{font-size:34px;color:#fffc}#tSteer.btns #tKnob{display:none}
+#tSteer.tilt .rail{display:none}
+#tRight{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:flex-end}
+#tRight .col{display:flex;flex-direction:column;gap:10px}#tRight .pd{display:flex;gap:10px;align-items:flex-end}
+#tRight .pedal{width:86px;height:150px;font-size:15px}
+#tRight .gas{height:170px;border-color:#3ddc97}#tRight .brake{border-color:#ff4d6d}
+#tRight .sm{width:58px;height:52px;font-size:17px;line-height:1}#tRight .sm small{font-size:9px;letter-spacing:1px;opacity:.8}
+#tTop{position:absolute;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));display:flex;gap:8px}
+#tTop button{width:52px;height:44px;font-size:20px;border-radius:12px}
+body.touch #camBtn,body.touch #hint{display:none}
+/* compact HUD on small screens */
+@media (max-width:900px),(max-height:520px){
+  #h-tl{left:max(10px,env(safe-area-inset-left));top:8px}#h-pos{font-size:32px}#h-tl>div{font-size:14px;margin-top:2px}#hud .lbl{font-size:11px}
+  #h-board{margin-top:6px!important}#h-board div{width:108px;font-size:11px;padding:1px 6px}
+  #h-map{width:112px;height:112px;right:max(8px,env(safe-area-inset-right));top:8px}
+  #h-spd b{font-size:42px}#h-gear{font-size:22px}#h-rpm{width:140px;height:7px}
+  #h-fps{top:126px;right:12px}#camBtn{top:126px}
+  #h-msg{font-size:28px}#h-wrong{font-size:30px}#h-lights i{width:30px;height:30px}
+  #overlay .box{padding:16px}#overlay h3{font-size:22px}
+}
+/* landscape phone: speedo sits above the pedals */
+body.touch #h-spd{bottom:auto;top:calc(10px + env(safe-area-inset-top));right:136px}
+@media (orientation:portrait){
+  body.touch #h-spd{top:132px;right:max(10px,env(safe-area-inset-right))}
+  body.touch #h-board div:nth-child(n+5){display:none}
+  #tSteer{width:100%;height:30%}
+  #tSteer .rail{right:190px}#tRight{flex-direction:column;align-items:flex-end}#tRight .col{flex-direction:row}
+  #tRight .pedal{width:74px;height:120px}#tRight .gas{height:140px}#tRight .sm{width:50px;height:46px;font-size:13px}
+}
+@media (max-width:520px){
+  #cars{grid-template-columns:repeat(2,1fr)}
+  .slider{grid-template-columns:96px 1fr 64px;font-size:13px}
+  .ai{grid-template-columns:1fr 1fr;}
+  #menu{padding:10px 10px 90px}
+  #start{position:sticky;bottom:10px;z-index:3;box-shadow:0 6px 20px #000a}
+}
 #camBtn{position:absolute;top:202px;right:14px;pointer-events:auto;font-size:13px;background:#0a0c1e99}
 #h-fps{position:absolute;top:240px;right:16px;font:12px system-ui;color:#fff9;font-style:normal}
 #loading{position:absolute;inset:0;display:none;place-items:center;background:#0e1020;font-size:22px;color:var(--acc);font-family:system-ui}
@@ -133,6 +175,8 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:8px}
         <select id="quality"><option value="2">High (tilt-shift)</option><option value="1">Medium</option><option value="0">Low</option></select>
         <span style="color:var(--mute);font-size:13px">Assists</span>
         <select id="assist"><option value="1">TC + stability on</option><option value="0">Off (expert)</option></select>
+        <span class="tonly" style="color:var(--mute);font-size:13px;display:none">Touch steering</span>
+        <select id="tsteer" class="tonly" style="display:none"><option value="drag">Slide pad</option><option value="btns">◀ ▶ buttons</option><option value="tilt">Tilt phone</option></select>
         <span style="color:var(--mute);font-size:13px">Gearbox</span>
         <select id="gearbox"><option value="auto">Automatic</option><option value="manual">Manual (E/Q · RB/LB)</option></select>
       </div>
@@ -177,7 +221,14 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:8px}
     <div id="hint">C camera · E/Q shift gears · G auto/manual · Space handbrake · R reset · P pause</div>
     <button id="camBtn">🎥 Camera</button><div id="h-fps"></div>
   </div>
-  <div id="touch"><div><button data-k="left">◀</button><button data-k="right">▶</button></div><div><button data-k="hb">⤾</button><button data-k="brake">■</button><button data-k="gas">▲</button></div></div>
+  <div id="touch">
+    <div id="tSteer"><div class="rail"><b><span>◀</span><span>▶</span></b><div id="tKnob"></div></div></div>
+    <div id="tTop"><button data-act="pause">⏸</button><button data-act="cam">🎥</button></div>
+    <div id="tRight">
+      <div class="col"><button class="sm" data-act="up">▲<br><small>GEAR</small></button><button class="sm" data-act="down">▼<br><small>GEAR</small></button><button class="sm" data-k="hb">HB</button></div>
+      <div class="pd"><button class="pedal brake" data-k="brake">BRAKE</button><button class="pedal gas" data-k="gas">GAS</button></div>
+    </div>
+  </div>
   <div id="loading">Building track…</div>
 </div>
 <div id="overlay"><div class="box"><h3 id="ov-title"></h3><div id="ov-body"></div><div class="btns" id="ov-btns"></div></div></div>
@@ -1119,7 +1170,7 @@ function buildWorld(T,th,q){
   // TV camera stations (kept clear of trees)
   const stations=[],step=Math.round(130/T.ds);for(let k=0;k<T.N;k+=step){const d=((k/step)%2?1:-1)*(RUNOFF+14),x=T.X[k]+T.RX[k]*d,z=T.Z[k]+T.RZ[k]*d;stations.push({k,x,z,y:Math.max(T.Y[k],heightAt(x,z))+6})}
   // trees and rocks
-  const kinds=th.trees,placements=[],nTrees=q>1?1300:q>0?850:450;
+  const kinds=th.trees,placements=[],nTrees=Math.round((q>1?1300:q>0?850:450)*(IS_TOUCH?.6:1));
   for(let k=0,tries=0;k<nTrees&&tries<nTrees*8;tries++){const x=lerp(bx0-260,bx1+260,rnd()),z=lerp(bz0-260,bz1+260,rnd());const[d]=nearest(x,z);if(d<RUNOFF+5||(d>260&&rnd()<.7))continue;if(stations.some(s=>(s.x-x)**2+(s.z-z)**2<22*22))continue;
     placements.push({t:kinds[Math.floor(rnd()*kinds.length)],x,z,y:heightAt(x,z),s:.75+rnd()*.6,r:rnd()*6.28,c:.8+rnd()*.35,v:Math.floor(rnd()*3)});k++}
   const barkM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,flatShading:true});
@@ -1135,7 +1186,7 @@ function buildWorld(T,th,q){
     mk(tg_.trunk,tg_.cactus?cactusM:barkM,false);if(tg_.fol)mk(tg_.fol,tg_.pine?pineM:leafM,true)}
   // grass tufts (alpha cards), wind-swayed, chunked along the track and culled by distance
   const grassChunks=[];let grassMat=null;
-  const gCount=q>1?45000:q>0?24000:0,dry=th.runoff==='sand',snow=th.runoff==='snow';
+  const gCount=(q>1?45000:q>0?24000:0)*(IS_TOUCH?.5:1),dry=th.runoff==='sand',snow=th.runoff==='snow';
   if(gCount&&!snow){
     const cards=[];for(let k=0;k<3;k++){const g=new THREE.PlaneGeometry(.9,.6);g.translate(0,.3,0);g.rotateY(k/3*Math.PI);cards.push(g)}
     const gg=mergeGeometries(cards);{const nr=gg.attributes.normal;for(let i=0;i<nr.count;i++)nr.setXYZ(i,0,1,0)}
@@ -1370,7 +1421,7 @@ function box(w,h,l,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,l
 
 /* ================= cars & physics ================= */
 const R={state:'menu',cars:[],player:null,time:0,cd:0,paused:false,T:null,cam:S.cam||0,mute:false,bump:0};
-const keys={},touch={left:0,right:0,gas:0,brake:0,hb:0};
+const keys={},touch={left:0,right:0,gas:0,brake:0,hb:0,analog:false,steerVal:0};
 // gamepad (standard mapping): left stick steer, RT/A throttle, LT/X brake, B handbrake, RB/LB shift up/down, Y / d-pad cameras, d-pad down auto/manual, Back reset, Start pause
 const pad={steer:0,thr:0,brk:0,hb:false,active:false,prev:[],rumbleT:0};
 function pollPad(){
@@ -1391,7 +1442,7 @@ function pollPad(){
 function rumble(strong,weak,ms){const a=pad.gp&&pad.gp.vibrationActuator;if(!a||performance.now()<pad.rumbleT)return;pad.rumbleT=performance.now()+ms;try{a.playEffect('dual-rumble',{duration:ms,strongMagnitude:strong,weakMagnitude:weak})}catch(e){}}
 addEventListener('gamepadconnected',e=>{const t=$('#h-cam');if(t){t.textContent='🎮 Controller connected';t.style.opacity=1;setTimeout(()=>t.style.opacity=0,2000)}});
 function newCar(spec,name,color,isPlayer,diff,slot){
-  const T=R.T,p=gridSlot(T,slot),model=isPlayer&&custom?customCarModel(spec):carModel(spec,color,{interior:isPlayer,dq:isPlayer?1.85:1.4});scene.add(model);
+  const T=R.T,p=gridSlot(T,slot),model=isPlayer&&custom?customCarModel(spec):carModel(spec,color,{interior:isPlayer,dq:isPlayer?(IS_TOUCH?1.1:1.85):(IS_TOUCH?.8:1.4)});scene.add(model);
   const rnd=mulberry32(slot*977+13+Math.floor(Math.random()*1000)),P=carPhys(spec);
   const c={name,spec,P,color,isPlayer,diff,model,x:p.x,z:p.z,y:p.y,h:p.h,vx:0,vz:0,vf:0,r:0,ax:0,ay:0,steer:0,steerIn:0,i:p.k,s:p.k*T.ds,d:0,lap:0,finished:false,finishTime:0,lapStart:0,best:Infinity,last:0,
     grade:0,roll:0,pitch:0,slipF:0,slipR:0,slip:0,spinW:false,onRoad:true,rpm:900,gear:1,thr:0,brk:0,hb:false,lane:(rnd()-.5)*5,off:0,mistake:0,mdir:1,rnd,cap:1,assist:isPlayer?S.assist:true,
@@ -1519,8 +1570,8 @@ function aiControl(c,dt){
 function playerControl(c,dt){
   if(c.finished){c.lane=0;c.diff=1;c.assist=true;return aiControl(c,dt)}
   const kb=(keys.ArrowRight||keys.KeyD||touch.right?1:0)-(keys.ArrowLeft||keys.KeyA||touch.left?1:0);
-  if(!kb&&pad.active){const pr=10/(1+Math.max(c.vf,0)/45);c.steerIn+=clamp(pad.steer-c.steerIn,-dt*pr,dt*pr);const gas=Math.max(pad.thr,(keys.ArrowUp||keys.KeyW||touch.gas)?1:0);c.thrIn=gas;c.stuck=Math.abs(c.vf)<1.5&&gas>.2?(c.stuck||0)+dt:0;
-    return[gas,Math.max(pad.brk,(keys.ArrowDown||keys.KeyS||touch.brake)?1:0),c.steerIn,pad.hb||!!keys.Space]}
+  if(!kb&&(pad.active||touch.analog)){const pr=10/(1+Math.max(c.vf,0)/45),sv=touch.analog?touch.steerVal:pad.steer;c.steerIn+=clamp(sv-c.steerIn,-dt*pr,dt*pr);const gas=Math.max(pad.thr,(keys.ArrowUp||keys.KeyW||touch.gas)?1:0);c.thrIn=gas;c.stuck=Math.abs(c.vf)<1.5&&gas>.2?(c.stuck||0)+dt:0;
+    return[gas,Math.max(pad.brk,(keys.ArrowDown||keys.KeyS||touch.brake)?1:0),c.steerIn,pad.hb||!!keys.Space||!!touch.hb]}
   const tgt=kb;
   const sr=(c.spec.steer||1)/(1+Math.max(c.vf,0)/40),rate=(tgt===0?7:(c.steerIn!==0&&Math.sign(tgt)!==Math.sign(c.steerIn)?7:4.6))*sr;
   c.steerIn+=clamp(tgt-c.steerIn,-rate*dt,rate*dt);
@@ -1582,6 +1633,9 @@ function startRace(){
   if(S.mode!=='highway'&&(!S.raw||S.raw.length<25)){alert('Draw a track (or pick a preset) first!');return}
   $('#menu').style.display='none';$('#game').style.display='block';$('#loading').style.display='grid';$('#overlay').style.display='none';
   audioInit();
+  if(IS_TOUCH){try{const de=document.documentElement;if(!document.fullscreenElement&&de.requestFullscreen)de.requestFullscreen({navigationUI:'hide'}).catch(()=>{})}catch(e){}
+    if(S.tsteer==='tilt'&&window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().catch(()=>{})}
+  touchSetup();
   setTimeout(()=>{try{startRace2()}catch(e){showErr(e.message);console.error(e)}},30);
 }
 function startRace2(){
@@ -1593,7 +1647,7 @@ function startRace2(){
   if(key!==worldKey||!world){world=hw?buildHighway(S.quality):buildWorld(buildTrack(S.raw,trackOpts()),THEMES[S.theme],S.quality);worldKey=key;initSmoke()}
   const th=R.th||THEMES[S.theme];
   R.T=world.T;
-  const q=S.quality,dpr=devicePixelRatio||1;R.baseDpr=q>1?Math.min(Math.max(dpr,1.25),2):q>0?Math.min(Math.max(dpr,1),1.5):1;R.dpr=R.baseDpr;renderer.setPixelRatio(R.dpr);renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.enabled=q>0;
+  const q=S.quality,dpr=devicePixelRatio||1;R.baseDpr=IS_TOUCH?(q>1?Math.min(dpr,1.6):q>0?Math.min(dpr,1.3):1):q>1?Math.min(Math.max(dpr,1.25),2):q>0?Math.min(Math.max(dpr,1),1.5):1;R.dpr=R.baseDpr;renderer.setPixelRatio(R.dpr);renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.enabled=q>0;
   setupComposer(q,th);
   const order=hw?[]:S.ai.map((a,k)=>k);for(let k=order.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[order[k],order[j]]=[order[j],order[k]]}
   order.forEach((k,slot)=>{const a=S.ai[k],spec=CARS[a.car>=0?a.car:Math.floor(Math.random()*CARS.length)],col=Math.random()<.5?spec.color:PAINTS[Math.floor(Math.random()*PAINTS.length)];
@@ -1634,8 +1688,34 @@ addEventListener('keydown',e=>{keys[e.code]=true;if(R.state==='menu')return;
   const n=+e.key;if(n>=1&&n<=CAMS.length)setCam(n-1)});
 addEventListener('keyup',e=>{keys[e.code]=false});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
-document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k,on=v=>e=>{e.preventDefault();touch[k]=v};b.addEventListener('pointerdown',on(1));b.addEventListener('pointerup',on(0));b.addEventListener('pointercancel',on(0));b.addEventListener('pointerleave',on(0))});
-if('ontouchstart' in window||navigator.maxTouchPoints>0)$('#touch').style.display='flex';
+// ---- touch: multi-touch pedals/buttons, analog slide-pad or tilt steering ----
+const IS_TOUCH=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+document.querySelectorAll('#touch button[data-k]').forEach(b=>{const k=b.dataset.k,on=v=>e=>{e.preventDefault();touch[k]=v;b.classList.toggle('dn',!!v);if(v&&navigator.vibrate)navigator.vibrate(8)};
+  b.addEventListener('pointerdown',e=>{try{b.setPointerCapture(e.pointerId)}catch(_){};on(1)(e)});b.addEventListener('pointerup',on(0));b.addEventListener('pointercancel',on(0));b.addEventListener('lostpointercapture',on(0))});
+document.querySelectorAll('#touch button[data-act]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();const a=b.dataset.act;if(navigator.vibrate)navigator.vibrate(10);
+  if(a==='pause')togglePause();else if(a==='cam')setCam((R.cam+1)%CAMS.length);else if(a==='up')shift(1);else if(a==='down')shift(-1)}));
+{const z=$('#tSteer'),knob=$('#tKnob');let id=null,x0=0;
+  const set=v=>{touch.steerVal=v;knob.style.transform=`translateX(${v*Math.min(120,z.clientWidth*.32)}px)`};
+  z.addEventListener('pointerdown',e=>{e.preventDefault();if(S.tsteer==='tilt')return;id=e.pointerId;try{z.setPointerCapture(id)}catch(_){};
+    if(S.tsteer==='btns'){const r=z.getBoundingClientRect(),left=e.clientX<r.left+r.width/2;touch.left=left?1:0;touch.right=left?0:1;return}
+    const rail=z.querySelector('.rail').getBoundingClientRect();x0=rail.left+rail.width/2;touch.analog=true;set(clamp((e.clientX-x0)/(rail.width*.38),-1,1))});
+  z.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;if(S.tsteer==='btns'){const r=z.getBoundingClientRect(),left=e.clientX<r.left+r.width/2;touch.left=left?1:0;touch.right=left?0:1;return}
+    const rail=z.querySelector('.rail').getBoundingClientRect();set(clamp((e.clientX-x0)/(rail.width*.38),-1,1))});
+  const end=e=>{if(e.pointerId!==id)return;id=null;touch.left=touch.right=0;if(S.tsteer!=='tilt'){touch.analog=false;set(0)}};z.addEventListener('pointerup',end);z.addEventListener('pointercancel',end)}
+// tilt steering (landscape or portrait), centred when the race starts
+let tiltRaw=0,tiltZero=null;
+addEventListener('deviceorientation',e=>{const a=(screen.orientation&&screen.orientation.angle)??window.orientation??0;tiltRaw=a===90?e.beta:a===-90||a===270?-e.beta:e.gamma;
+  if(S.tsteer==='tilt'&&tiltRaw!=null){if(tiltZero===null)tiltZero=tiltRaw;touch.analog=true;const v=clamp((tiltRaw-tiltZero)/28,-1,1);touch.steerVal=Math.sign(v)*Math.pow(Math.abs(v),1.3)}});
+function touchSetup(){document.body.classList.toggle('touch',IS_TOUCH);$('#touch').style.display=IS_TOUCH?'block':'none';
+  const z=$('#tSteer');z.classList.toggle('btns',S.tsteer==='btns');z.classList.toggle('tilt',S.tsteer==='tilt');touch.analog=S.tsteer==='tilt';tiltZero=null}
+document.querySelectorAll('.tonly').forEach(e=>e.style.display=IS_TOUCH?'':'none');
+if(!S.tsteer)S.tsteer='drag';$('#tsteer').value=S.tsteer;
+$('#tsteer').onchange=e=>{S.tsteer=e.target.value;save();if(S.tsteer==='tilt'&&window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().catch(()=>{})};
+document.addEventListener('contextmenu',e=>{if(R.state!=='menu')e.preventDefault()});
+document.addEventListener('dblclick',e=>e.preventDefault());
+addEventListener('orientationchange',()=>setTimeout(resize,250));if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(R.state!=='menu')resize()});
+// phones: lighter defaults the first time
+if(IS_TOUCH&&!localStorage.getItem('sketchracer3d_m')){try{localStorage.setItem('sketchracer3d_m','1')}catch(e){}S.quality=Math.min(S.quality,Math.min(innerWidth,innerHeight)<500?0:1);$('#quality').value=S.quality;save()}
 $('#camBtn').onclick=()=>setCam((R.cam+1)%CAMS.length);
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(w,h);tiltH.uniforms.h.value=2.4/w;tiltV.uniforms.v.value=2.4/h}}
 addEventListener('resize',resize);
@@ -1740,6 +1820,7 @@ function updateCamera(dt){
   if(R.bump>0){camera.position.y+=Math.sin(R.time*60)*R.bump*.05;if(R.bump>.2)rumble(R.bump,R.bump*.6,120);R.bump=Math.max(0,R.bump-dt*3)}
   if(!c0.onRoad&&Math.abs(c0.vf)>5)rumble(.15,.35,90);
   camera.near=inside||mode==='Hood'||mode==='Bumper'?.05:.4;camera.far=5000;
+  if(camera.aspect<1.25){const h=2*Math.atan(Math.tan(fov*Math.PI/360)*1.25)/Math.PI*180;fov=Math.min(118,2*Math.atan(Math.tan(h*Math.PI/360)/camera.aspect)*180/Math.PI*.82)}
   camera.fov+=(fov-camera.fov)*(camState.init?1-Math.exp(-dt*4):1);camera.updateProjectionMatrix();
   camState.init=true;world.sky.position.copy(camera.position);if(world.clouds){world.clouds.position.copy(camera.position);world.clouds.material.uniforms.t.value=performance.now()/1000}
   return inside;
@@ -1872,7 +1953,7 @@ buildAIList();
 if(!S.raw.length)setPreset('gp');else rebuild();
 buildCarPicker();
 requestAnimationFrame(frame);
-window.__R=R;window.__S=S;window.__keys=keys;window.__tick=tick;window.__dbg={newCar,CARS,stepCar,carModel,camera,HW:()=>HW,hwFrame:(dt)=>{hwStream(R.player);hwTraffic(dt,R.player)}};
+window.__R=R;window.__S=S;window.__keys=keys;window.__tick=tick;window.__dbg={touch,newCar,CARS,stepCar,carModel,camera,HW:()=>HW,hwFrame:(dt)=>{hwStream(R.player);hwTraffic(dt,R.player)}};
 </script>
 </body>
 </html>
