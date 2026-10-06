@@ -35,3 +35,7 @@ Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opp
 - **Play locally:** open `game/index.html`.
 - **Play from a link:** merge to `main`, then in the repo go to Settings → Pages → Source: **GitHub Actions**. `.github/workflows/pages.yml` publishes `game/` to `https://<user>.github.io/<repo>/`. Use your browser's "Install / Add to home screen" for a shortcut.
 - **Controls:** ↑/W throttle, ↓/S brake/reverse, ←→/A D steer, Space handbrake, C or 1–8 camera (chase, far chase, cockpit, onboard, hood, bumper, TV, helicopter), R reset car, P/Esc pause, M mute. Gamepad: left stick steer, RT throttle, LT brake, B handbrake, Y/RB camera, Back reset, Start pause. Touch buttons appear on phones.
+
+
+### Audio credits
+Engine, crash and horn recordings: [pmndrs/racing-game](https://github.com/pmndrs/racing-game) (MIT licence). Engine character is layered with an in-browser per-cylinder synth.
