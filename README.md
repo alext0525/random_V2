@@ -38,4 +38,5 @@ Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opp
 
 
 ### Audio credits
-Engine, crash and horn recordings: [pmndrs/racing-game](https://github.com/pmndrs/racing-game) (MIT licence). Engine character is layered with an in-browser per-cylinder synth.
+- Engine loops: CC0 recordings from freesound.org — GiocoSound car engine pack (401547–401558), FreeCarSoundsGaming V8 pack (535037–535041), F1 idle & race start (181187), Lamborghini idle (112075), VW dune buggy (675200). Cut into seamless loops and crossfaded by rpm.
+- Crash and horn: [pmndrs/racing-game](https://github.com/pmndrs/racing-game) (MIT).
