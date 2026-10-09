@@ -42,5 +42,5 @@ Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opp
 - Crash and horn: [pmndrs/racing-game](https://github.com/pmndrs/racing-game) (MIT).
 
 ### Car models
-24 real cars live in `game/cars/*.glb` (meshopt + WebP compressed). Each class has several, picked under the class cards; "Sketch original" keeps the procedural car. Engine power, torque, rev range, mass, drivetrain, wheelbase and tyre size come from the real car; handling character still comes from the class.
+24 real cars live in `game/cars/*.json` (glTF with embedded meshopt + WebP data). Each class has several, picked under the class cards; "Sketch original" keeps the procedural car. Engine power, torque, rev range, mass, drivetrain, wheelbase and tyre size come from the real car; handling character still comes from the class.
 Sources: Sketchfab artists via homework-26, raynocato/carmodels, rigmodels, Motorpool (McLaren F1), AlphaHub (Mercedes W14) and the three.js examples (Ferrari 458). For private use only.

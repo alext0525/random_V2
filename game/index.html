@@ -2303,7 +2303,7 @@ function customCarModel(spec){
 }
 
 /* ================= real car models ================= */
-// cars/<key>.glb · len = real length (m) · y0 = height of the tyre bottoms in the normalised model · f/r = [axle z, tyre radius, wheel centre x]
+// cars/<key>.json (glTF, meshopt) · len = real length (m) · y0 = height of the tyre bottoms in the normalised model · f/r = [axle z, tyre radius, wheel centre x]
 // flip = model faces backwards · rm = mesh names to drop · engine/mass figures are the real car's
 const RC={
  w14:{name:'Mercedes-AMG F1 W14',cls:'formula',len:5.6,y0:.135,f:[1.5,.36,.86],r:[-2.145,.36,.83],mass:798,kw:760,eye:[0,.96,.02],src:'AlphaHub'},
@@ -2343,7 +2343,7 @@ function realSpec(key){if(RSPEC[key])return RSPEC[key];const m=RC[key],b=CARS.fi
 function playerSpec(){const b=CARS[S.car],k=(S.models||{})[b.kind];return k&&RC[k]&&RC[k].cls===b.kind?realSpec(k):b}
 const RLOAD=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),RCT={},RCP={};
 function loadReal(key){if(!RC[key])return Promise.resolve(null);if(RCT[key])return Promise.resolve(RCT[key]);
-  return RCP[key]||(RCP[key]=RLOAD.loadAsync('cars/'+key+'.glb').then(g=>RCT[key]=prepReal(g,RC[key])).catch(e=>{console.warn('car model',key,e);RCP[key]=null;return null}))}
+  return RCP[key]||(RCP[key]=RLOAD.loadAsync('cars/'+key+'.json').then(g=>RCT[key]=prepReal(g,RC[key])).catch(e=>{console.warn('car model',key,e);RCP[key]=null;return null}))}
 // normalise a glTF car (orient, scale to real length, ground the tyres), bake it to the car frame and cut the four wheels out so they can spin and steer
 function prepReal(gl,cfg){
   const root=new THREE.Group(),m=gl.scene;root.add(m);root.updateMatrixWorld(true);
