@@ -35,6 +35,7 @@ button.small{padding:4px 9px;font-size:13px}
 input[type=range]{width:100%;accent-color:var(--acc)}
 .stats{color:var(--mute);font-size:13px;margin-top:6px}
 #cars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#models{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}#models button{text-align:left;line-height:1.25;flex:1 1 150px}#models button small{color:var(--mute);font-size:10px}#models button.on{border-color:var(--acc);background:#2b3170;color:#fff;font-weight:400}
 .car{background:var(--panel2);border:2px solid transparent;border-radius:10px;padding:6px;cursor:pointer;text-align:center}
 .car.sel{border-color:var(--acc);background:#2b3170}
 .car img{width:100%;aspect-ratio:3/2;display:block;object-fit:contain}
@@ -201,6 +202,7 @@ body.touch #h-spd{bottom:auto;top:calc(4px + env(safe-area-inset-top));right:128
     <div class="panel">
       <h2>3 · Pick your car</h2>
       <div id="cars"></div>
+      <div id="models"></div>
       <div id="paints"></div>
       <div class="row"><button id="glbBtn" class="small">📦 Load custom car model (.glb)</button><button id="glbFlip" class="small" style="display:none">⇄ Flip front/back</button><button id="glbClear" class="small" style="display:none">✕ Remove</button><input type="file" id="glbFile" accept=".glb,.gltf" hidden></div>
       <div class="stats" id="glbInfo">Have a realistic car model (e.g. a free CC0 .glb)? Load it to replace the look of your selected car — the physics of the class stay the same.</div>
@@ -218,6 +220,7 @@ body.touch #h-spd{bottom:auto;top:calc(4px + env(safe-area-inset-top));right:128
     </div>
     <button class="primary" id="start">START RACE ▶</button>
     <div class="stats">Sounds: engine recordings CC0 from freesound.org (GiocoSound, FreeCarSoundsGaming, Ears68 and others); crash &amp; horn from <a href="https://github.com/pmndrs/racing-game" style="color:var(--mute)">pmndrs/racing-game</a> (MIT).</div>
+    <div class="stats">Car models: Sketchfab artists via homework-26, raynocato/carmodels, rigmodels, Motorpool, AlphaHub and the three.js examples (Ferrari 458). For private use.</div>
     <div class="stats">Keyboard: ↑/W throttle · ↓/S brake/reverse · ←→/A D steer · E/Q shift · G auto/manual · Space handbrake · C or 1–8 camera · R reset · P/Esc pause · M mute<br>Controller: left stick steer · RT throttle · LT brake · B handbrake · RB/LB shift · Y or d-pad camera · d-pad ↓ auto/manual · Back reset · Start pause/start</div>
   </div>
 </div>
@@ -259,6 +262,7 @@ import {HorizontalTiltShiftShader} from 'three/addons/shaders/HorizontalTiltShif
 import {VerticalTiltShiftShader} from 'three/addons/shaders/VerticalTiltShiftShader.js';
 import {Sky} from 'three/addons/objects/Sky.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 const $=s=>document.querySelector(s);
@@ -439,7 +443,7 @@ function buildAIList(){
   if(!S.ai.length)box.innerHTML='<div class="stats">No opponents – time trial mode.</div>';
   S.ai.forEach((a,i)=>{
     const d=document.createElement('div');d.className='ai';
-    const opts='<option value="-1">Random car</option>'+CARS.map((c,k)=>`<option value="${k}"${a.car===k?' selected':''}>${c.name}</option>`).join('');
+    const opts='<option value="-1">Random car</option>'+CARS.map((c,k)=>`<option value="${k}"${a.car===k?' selected':''}>${CLS_NAME[c.kind]}</option>`).join('');
     d.innerHTML=`<span class="nm">${AINAMES[i]}</span><select>${opts}</select><span><input type="range" min="0" max="100" value="${Math.round(a.diff*100)}"><output>${tier(a.diff)}</output></span><button class="small">✕</button>`;
     const sel=d.querySelector('select'),rg=d.querySelector('input'),out=d.querySelector('output');
     sel.onchange=()=>{a.car=+sel.value;save()};
@@ -632,9 +636,9 @@ const PHYS={hatch:{wf:.62,drive:'f',df:0,h:.52,bb:.65,ap:.13,cal:'#c62828'},musc
   buggy:{wf:.4,drive:'r',df:0,h:.55,bb:.6,ap:.16,cal:'#555555'},formula:{wf:.45,drive:'r',df:3.5,h:.28,bb:.56,ap:.11,cal:'#d32f2f'}};
 for(const c of CARS){const pf=perf(c);c.top=pf.top;c.t100=pf.t100;c.acc=pf.F0/c.mass}
 function carPhys(spec){
-  const ph=PHYS[spec.kind],p=PROF[spec.kind],m=spec.mass,L=p.base,b=ph.wf*L,a=L-b;
-  const e=spec.eng,rw=p.wr,cd=.5*1.225*e.cda,F0=e.nm*e.gears[0]*e.fd*.88/rw;
-  return{eng:e,rw,relax:{formula:.15,super:.4,rally:.5}[spec.kind]||.5,a,b,L,h:ph.h,Iz:m*a*b*({muscle:1.7,formula:1.05,rally:1.15,buggy:1.4,super:1.2}[spec.kind]||1.3),F0,cd,df:ph.df,dfm:ph.df/m,drive:ph.drive,bb:ph.bb,ap:ph.ap,gCap:{formula:5.2}[spec.kind]||9,apR:{hatch:.72,rally:.82,buggy:.85,muscle:.84,super:.8,formula:.8}[spec.kind]||.8,gR:{hatch:1.1,rally:1.04,buggy:1.05,muscle:1.0,super:1.05,formula:1.04}[spec.kind]||1.05,slideF:{formula:.78}[spec.kind]||.86,slideR:{formula:.74,muscle:.82,rally:.88,buggy:.9}[spec.kind]||.84,lowLoose:{formula:.85,super:.3,rally:.2}[spec.kind]||0,sfall:{formula:80,super:55,rally:50}[spec.kind]||40,stick:{formula:40,super:18,hatch:14,rally:13,buggy:7,muscle:8}[spec.kind],loose:{muscle:1,super:.35,rally:.55,buggy:.6,formula:.1,hatch:.1}[spec.kind]||0,tcSlack:{muscle:1.12,super:1.0}[spec.kind]||.92,us:{formula:.00005,super:.00012,muscle:.0004,hatch:.0005,buggy:.0006,rally:.00015}[spec.kind]||.0002};
+  const ph=PHYS[spec.kind],p=PROF[spec.kind],m=spec.mass,L=spec.base||p.base,b=ph.wf*L,a=L-b;
+  const e=spec.eng,rw=spec.wr||p.wr,cd=.5*1.225*e.cda,F0=e.nm*e.gears[0]*e.fd*.88/rw;
+  return{eng:e,rw,relax:{formula:.15,super:.4,rally:.5}[spec.kind]||.5,a,b,L,h:ph.h,Iz:m*a*b*({muscle:1.7,formula:1.05,rally:1.15,buggy:1.4,super:1.2}[spec.kind]||1.3),F0,cd,df:ph.df,dfm:ph.df/m,drive:spec.drive||ph.drive,bb:ph.bb,ap:ph.ap,gCap:{formula:5.2}[spec.kind]||9,apR:{hatch:.72,rally:.82,buggy:.85,muscle:.84,super:.8,formula:.8}[spec.kind]||.8,gR:{hatch:1.1,rally:1.04,buggy:1.05,muscle:1.0,super:1.05,formula:1.04}[spec.kind]||1.05,slideF:{formula:.78}[spec.kind]||.86,slideR:{formula:.74,muscle:.82,rally:.88,buggy:.9}[spec.kind]||.84,lowLoose:{formula:.85,super:.3,rally:.2}[spec.kind]||0,sfall:{formula:80,super:55,rally:50}[spec.kind]||40,stick:{formula:40,super:18,hatch:14,rally:13,buggy:7,muscle:8}[spec.kind],loose:{muscle:1,super:.35,rally:.55,buggy:.6,formula:.1,hatch:.1}[spec.kind]||0,tcSlack:{muscle:1.12,super:1.0}[spec.kind]||.92,us:{formula:.00005,super:.00012,muscle:.0004,hatch:.0005,buggy:.0006,rally:.00015}[spec.kind]||.0002};
 }
 // engine torque (Nm) at rpm: rises to the torque peak, holds to where peak power needs it, falls off past peak power
 function engTorque(e,rpm,rl){const tP=e.kw*1000/(e.pwR*Math.PI/30),r=clamp(rpm,e.idle,rl);
@@ -643,7 +647,7 @@ function engTorque(e,rpm,rl){const tP=e.kw*1000/(e.pwR*Math.PI/30),r=clamp(rpm,e
 function rpmAt(P,u,g){return Math.abs(u)/P.rw*P.eng.gears[g-1]*P.eng.fd*30/Math.PI}
 // straight-line simulation of the drivetrain -> top speed, 0-100 km/h (shown in the car picker, used by the AI)
 function perf(spec){const P=carPhys(spec),e=P.eng,m=spec.mass,rl=spec.redline,ph=PHYS[spec.kind];let u=0,t=0,g=1,t100=0,sh=0;
-  const trac=ph.drive==='a'?1:ph.drive==='f'?ph.wf*.92:(1-ph.wf)*1.08;
+  const trac=P.drive==='a'?1:P.drive==='f'?ph.wf*.92:(1-ph.wf)*1.08;
   for(let i=0;i<20000;i++){const dt=.01;if(sh>0)sh-=dt;else if(g<e.gears.length&&rpmAt(P,u,g)>rl*.97){g++;sh=e.shift}
     const rpm=Math.max(rpmAt(P,u,g),Math.min(rl*.6,e.tqR)),Fd=sh>0||rpm>=rl?0:engTorque(e,rpm,rl)*e.gears[g-1]*e.fd*.88/P.rw,Ft=spec.grip*(m*G+P.df*u*u)*trac*.95;
     const a=(Math.min(Fd,Ft)-P.cd*u*u-.012*m*G)/m;u+=a*dt;t+=dt;if(!t100&&u>=27.78)t100=t;if(sh<=0&&a<.002&&t>5)break}
@@ -1478,6 +1482,7 @@ function hwTruck(col,van){const P=new Parts(),g=new THREE.Group(),M=sharedMats()
 function hwTemplates(){if(HWT)return HWT;HWT=[];
   for(const kind of['hatch','hatch','muscle','rally','super','hatch']){const spec=CARS.find(c=>c.kind===kind),m=carModel(spec,'#888888',{dq:.38});m.userData={};HWT.push({m,len:PROF[kind].L,mass:spec.mass,r:PROF[kind].wr})}
   HWT.push(hwTruck(0x2a5aa8,false),hwTruck(0xb0302a,false),hwTruck(0xf2f2f2,true));return HWT}
+function hwAddReal(keys){hwTemplates();for(const k of keys){if(!RCT[k]||HWT.some(t=>t.real===k))continue;const m=realCarModel(k);m.userData={};const t={m,len:RC[k].len,mass:RC[k].mass,r:RC[k].r[1],real:k};HWT.push(t,t)}}
 const HW_COLS=['#d8d8d8','#1c1c1f','#8e9399','#a5161b','#1d3f8c','#f2f2f2','#3a3d42','#5a7a96','#7a1d2a','#c9b48a'];
 function hwVehicle(){const tp=HWT[Math.floor(HW.rnd()*HWT.length)],m=tp.m.clone(),col=HW_COLS[Math.floor(HW.rnd()*HW_COLS.length)];const cache=HW.paints;
   m.traverse(o=>{if(o.isMesh&&o.material&&o.material.userData&&o.material.userData.paint){const key=o.material.uuid+col;if(!cache[key]){cache[key]=o.material.clone();cache[key].color.set(col)}o.material=cache[key]}});
@@ -1614,13 +1619,14 @@ function pollPad(){
 function rumble(strong,weak,ms){const a=pad.gp&&pad.gp.vibrationActuator;if(!a||performance.now()<pad.rumbleT)return;pad.rumbleT=performance.now()+ms;try{a.playEffect('dual-rumble',{duration:ms,strongMagnitude:strong,weakMagnitude:weak})}catch(e){}}
 addEventListener('gamepadconnected',e=>{const t=$('#h-cam');if(t){t.textContent='🎮 Controller connected';t.style.opacity=1;setTimeout(()=>t.style.opacity=0,2000)}});
 function newCar(spec,name,color,isPlayer,diff,slot){
-  const T=R.T,p=gridSlot(T,slot),model=isPlayer&&custom?customCarModel(spec):carModel(spec,color,{interior:isPlayer,dq:isPlayer?(IS_TOUCH?1.1:1.85):(IS_TOUCH?.8:1.4)});scene.add(model);
+  const T=R.T,p=gridSlot(T,slot),model=isPlayer&&custom?customCarModel(spec):(spec.model&&realCarModel(spec.model))||carModel(spec.model?CARS.find(k=>k.kind===spec.kind):spec,color,{interior:isPlayer,dq:isPlayer?(IS_TOUCH?1.1:1.85):(IS_TOUCH?.8:1.4)});scene.add(model);
   const rnd=mulberry32(slot*977+13+Math.floor(Math.random()*1000)),P=carPhys(spec);
   const c={name,spec,P,color,isPlayer,diff,model,x:p.x,z:p.z,y:p.y,h:p.h,vx:0,vz:0,vf:0,r:0,ax:0,ay:0,steer:0,steerIn:0,i:p.k,s:p.k*T.ds,d:0,lap:0,finished:false,finishTime:0,lapStart:0,best:Infinity,last:0,
     grade:0,roll:0,pitch:0,slipF:0,slipR:0,slip:0,spinW:false,onRoad:true,rpm:900,gear:1,thr:0,brk:0,hb:false,lane:(rnd()-.5)*5,off:0,mistake:0,mdir:1,rnd,cap:1,assist:isPlayer?S.assist:true,
     react:isPlayer?0:lerp(.55,.12,diff)+rnd()*.25};
   c.arcade=isPlayer?1-(S.handling??.35):Math.max(.85,1-(S.handling??.35));c.manual=isPlayer&&S.gearbox==='manual';c.shiftT=0;c.gear=1;c.sim=isPlayer&&S.realism==='sim';if(c.sim){c.manual=true;c.gear=0}
   c.prof=isPlayer?speedProfile(T,.9,32,6,0):speedProfile(T,spec.grip*lerp(.78,.93,diff),spec.top*lerp(.9,1,diff),spec.grip*G*.7,P.dfm);
+  if(isPlayer&&model.userData.real){const e=model.userData.eyes.cockpit,cl=new THREE.PointLight(0xfff1e0,0,1.8,1.4);cl.position.set(e[0]*.5,e[1]+.05,e[2]+.35);model.userData.body.add(cl);model.userData.cabinLight=cl;model.userData.cabinI=(R.th&&R.th.night)?1.2:2.2}
   locate(c,true);return c;
 }
 function locate(c,full){
@@ -1935,11 +1941,18 @@ function startRace(){
   if(IS_TOUCH){try{const de=document.documentElement;if(!document.fullscreenElement&&de.requestFullscreen)de.requestFullscreen({navigationUI:'hide'}).catch(()=>{})}catch(e){}
     if(S.tsteer==='tilt'&&window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().catch(()=>{})}
   touchSetup();
-  setTimeout(()=>{try{startRace2();const tb=$('#tBox');if(tb&&R.player)tb.textContent=R.player.manual?'M':'A'}catch(e){showErr(e.message);console.error(e)}},30);
+  // pick the opponents' cars now so their models can download with the player's
+  const hw=S.mode==='highway',ps=playerSpec(),want=new Set();if(ps.model)want.add(ps.model);
+  R.aiPlan=hw?[]:S.ai.map(a=>{const base=CARS[a.car>=0?a.car:Math.floor(Math.random()*CARS.length)],pool=rcOf(base.kind).filter(k=>k!==ps.model),key=pool.length&&S.realAI!==false?pool[Math.floor(Math.random()*pool.length)]:null;
+    if(key)want.add(key);return{spec:key?realSpec(key):base,col:Math.random()<.5?base.color:PAINTS[Math.floor(Math.random()*PAINTS.length)]}});
+  if(hw)for(const k of (IS_TOUCH?['mustang','m3','c63','r34']:['mustang','m3','c63','r34','m5','hellcat']))want.add(k);
+  const msg=$('#loading');let done=0;const upd=()=>{if(msg)msg.textContent=`Loading cars ${done}/${want.size}…`};upd();
+  Promise.all([...want].map(k=>loadReal(k).then(()=>{done++;upd()}))).then(()=>{if(msg)msg.textContent='Building track…';if(hw)hwAddReal([...want]);
+  setTimeout(()=>{try{startRace2();const tb=$('#tBox');if(tb&&R.player)tb.textContent=R.player.manual?'M':'A'}catch(e){showErr(e.message);console.error(e)}},30)});
 }
 function startRace2(){
   const hw=S.mode==='highway',key=hw?'hw'+Math.random():JSON.stringify([S.raw,trackOpts(),S.theme,S.quality]);
-  for(const c of R.cars){scene.remove(c.model);c.model.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+  for(const c of R.cars){scene.remove(c.model);if(!c.model.userData.real)c.model.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
   R.cars=[];R.player=null;
   if(HW){for(const t of HW.traffic)scene.remove(t.m);HW=null}
   ROAD_HALF=hw?9.3:6;R.gripMul=1;if(!hw)R.th=null;
@@ -1949,9 +1962,9 @@ function startRace2(){
   const q=S.quality,dpr=devicePixelRatio||1;R.baseDpr=IS_TOUCH?(q>1?Math.min(dpr,1.6):q>0?Math.min(dpr,1.3):1):q>1?Math.min(Math.max(dpr,1.25),2):q>0?Math.min(Math.max(dpr,1),1.5):1;R.dpr=R.baseDpr;renderer.setPixelRatio(R.dpr);renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.enabled=q>0;
   setupComposer(q,th);
   const order=hw?[]:S.ai.map((a,k)=>k);for(let k=order.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[order[k],order[j]]=[order[j],order[k]]}
-  order.forEach((k,slot)=>{const a=S.ai[k],spec=CARS[a.car>=0?a.car:Math.floor(Math.random()*CARS.length)],col=Math.random()<.5?spec.color:PAINTS[Math.floor(Math.random()*PAINTS.length)];
+  order.forEach((k,slot)=>{const a=S.ai[k],pl=R.aiPlan&&R.aiPlan[k],spec=pl?pl.spec:CARS[a.car>=0?a.car:Math.floor(Math.random()*CARS.length)],col=pl?pl.col:Math.random()<.5?spec.color:PAINTS[Math.floor(Math.random()*PAINTS.length)];
     R.cars.push(newCar(spec,AINAMES[k],col,false,a.diff,slot))});
-  const pl=newCar(CARS[S.car],'YOU',PAINTS[S.paint],true,1,order.length);R.cars.push(pl);R.player=pl;
+  const pl=newCar(playerSpec(),'YOU',PAINTS[S.paint],true,1,order.length);R.cars.push(pl);R.player=pl;
   if(R.cubeRT){R.cubeRT.dispose();scene.remove(R.cubeCam);R.cubeRT=R.cubeCam=null}
   if(S.quality>2){R.cubeRT=new THREE.WebGLCubeRenderTarget(IS_TOUCH?128:256,{type:THREE.HalfFloatType});R.cubeCam=new THREE.CubeCamera(.6,700,R.cubeRT);scene.add(R.cubeCam);
     pl.model.traverse(o=>{if(o.isMesh&&o.material&&!Array.isArray(o.material)&&(o.material.userData.paint||o.material.metalness>.5||o.material.transparent)){if(!o.material.userData.paint)o.material=o.material.clone();o.material.envMap=R.cubeRT.texture;o.material.needsUpdate=true}})}
@@ -2113,6 +2126,7 @@ function updateCamera(dt){
   m.updateMatrixWorld(true);
   const inside=mode==='Cockpit'||mode==='Onboard';
   if(m.userData.driver)m.userData.driver.visible=mode!=='Cockpit';
+  if(m.userData.cabinLight)m.userData.cabinLight.intensity=mode==='Cockpit'?m.userData.cabinI:0;
   if(m.userData.bodyInt){const ck=mode==='Cockpit';m.userData.bodyInt.visible=ck;m.userData.bodyExt.visible=!ck}
   if(mode==='Chase'||mode==='Far chase'||mode==='Helicopter'){
     camState.ax=lerp(camState.ax||0,clamp(c0.ax,-12,12),1-Math.exp(-dt*3));const dist=(mode==='Chase'?6.3:mode==='Far chase'?11:26)+(mode==='Helicopter'?0:camState.ax*.035+v*.006),hgt=mode==='Chase'?2.15:mode==='Far chase'?5.2:22;
@@ -2213,7 +2227,7 @@ function frame(ts){
   }
   // rear view: interior mirror in closed-car cockpits, on-screen mirror for every other view
   const mdN=CAMS[R.cam],cabinMir=inside&&mdN==='Cockpit'&&R.player.model.userData.eyes.mirror,hudOn=S.mirror!==false&&!cabinMir&&mdN!=='TV'&&mdN!=='Helicopter'&&R.state!=='done';
-  if((cabinMir||hudOn)&&frameN%2===0){const pl=R.player,body=pl.model.userData.body,H=PROF[pl.spec.kind].H,mz=cabinMir?pl.model.userData.eyes.mirror[2]:-.2;
+  if((cabinMir||hudOn)&&frameN%2===0){const pl=R.player,body=pl.model.userData.body,H=pl.model.userData.H||PROF[pl.spec.kind].H,mz=cabinMir?pl.model.userData.eyes.mirror[2]:-.2;
     tmpV.set(0,H+(pl.spec.kind==='formula'?.55:.2),mz-.6);body.localToWorld(tmpV);mirrorCam.position.copy(tmpV);tmpL.set(0,H-.3,mz-30);body.localToWorld(tmpL);mirrorCam.up.copy(UP);mirrorCam.lookAt(tmpL);
     const vis=pl.model.visible;pl.model.visible=!!cabinMir;renderer.setRenderTarget(mirrorRT);renderer.render(scene,mirrorCam);renderer.setRenderTarget(null);pl.model.visible=vis}
   if(R.cubeCam&&frameN%2===0&&R.player){const pl=R.player,m=pl.model;m.visible=false;R.cubeCam.position.set(pl.ix??pl.x,(pl.iy??pl.y)+.9,pl.iz??pl.z);R.cubeCam.update(renderer,scene);m.visible=true}
@@ -2224,28 +2238,35 @@ function frame(ts){
 
 /* ================= car picker with 3D previews ================= */
 let prevR=null,prevScene=null,prevCam=null;
-function carPreview(spec,color,useCustom){
+function carPreview(spec,color,useCustom,real){
   if(!prevR){prevR=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});prevR.setPixelRatio(1.5);prevR.setSize(300,200);prevR.outputColorSpace=THREE.SRGBColorSpace;prevR.toneMapping=THREE.ACESFilmicToneMapping;
     prevScene=new THREE.Scene();const pm=new THREE.PMREMGenerator(prevR),es=new THREE.Scene();es.add(skyMesh(THEMES.coast));prevScene.environment=pm.fromScene(es,.02).texture;pm.dispose();
     prevScene.add(new THREE.HemisphereLight(0xdfe8ff,0x444444,1.2));const dl=new THREE.DirectionalLight(0xffffff,2.5);dl.position.set(4,6,5);prevScene.add(dl);
     prevCam=new THREE.PerspectiveCamera(28,1.5,.1,100);prevCam.position.set(5.6,2.4,7.4);prevCam.lookAt(0,.55,0)}
-  const m=useCustom?customCarModel(spec):carModel(spec,color,{});prevScene.add(m);prevR.render(prevScene,prevCam);const url=prevR.domElement.toDataURL();
-  prevScene.remove(m);m.traverse(o=>{if(o.geometry)o.geometry.dispose()});return url;
+  const m=useCustom?customCarModel(spec):real?realCarModel(real):carModel(spec,color,{});const sc=real?4.5/RC[real].len:1;m.scale.setScalar(sc);prevScene.add(m);prevR.render(prevScene,prevCam);const url=prevR.domElement.toDataURL();
+  prevScene.remove(m);if(!real)m.traverse(o=>{if(o.geometry)o.geometry.dispose()});return url;
 }
 const previewCache={};
 function buildCarPicker(){
-  const box=$('#cars');box.innerHTML='';
-  CARS.forEach((c,i)=>{
-    const col=i===S.car?PAINTS[S.paint]:c.color,kk=i+col;
+  const box=$('#cars');box.innerHTML='';if(!S.models)S.models={};
+  CARS.forEach((c0,i)=>{
+    const rk=S.models[c0.kind]&&RC[S.models[c0.kind]]?S.models[c0.kind]:null,c=rk?realSpec(rk):c0;
+    const col=i===S.car?PAINTS[S.paint]:c0.color,kk=rk?'real'+rk:i+col;
     const useC=custom&&i===S.car,kk2=useC?'custom'+custom.name+(S.glbFlip?1:0):kk;
-    if(previewCache[kk2]===undefined)try{previewCache[kk2]=useC?carPreview(c,col,true):carPreview(c,col)}catch(e){console.error(e);previewCache[kk2]=''}
+    if(previewCache[kk2]===undefined){if(rk&&!RCT[rk]){loadReal(rk).then(t=>{if(t)buildCarPicker()})}else try{previewCache[kk2]=useC?carPreview(c,col,true):rk?carPreview(c,col,false,rk):carPreview(c,col)}catch(e){console.error(e);previewCache[kk2]=''}}
     const d=document.createElement('div');d.className='car'+(i===S.car?' sel':'');
-    const dr={f:'FWD',r:'RWD',a:'AWD'}[PHYS[c.kind].drive];
+    const dr={f:'FWD',r:'RWD',a:'AWD'}[c.drive||PHYS[c.kind].drive];
     const bars=[['SPD',c.top/96],['ACC',2.4/c.t100],['GRIP',c.grip/1.8],['OFF-RD',(3.1-c.off)/3]].map(([n,v])=>`<span>${n}</span><span class="bar"><i style="width:${Math.round(clamp(v,.15,1)*100)}%"></i></span>`).join('');
-    d.innerHTML=(previewCache[kk2]?`<img src="${previewCache[kk2]}" alt="${c.name}">`:'<div class="ph">preview</div>')+`<b>${c.name} <small style="color:var(--mute);font-weight:400">${dr}</small></b><div style="font-size:10px;color:var(--mute);margin:2px 0">${c.desc}<br><span style="color:var(--acc)">${Math.round(c.eng.kw*1.341)} hp · 0-100 ${c.t100.toFixed(1)}s · ${Math.round(c.top*3.6)} km/h · ${c.eng.gears.length}-spd</span></div><div class="bars">${bars}</div>`;
-    d.onclick=()=>{if(S.car!==i){S.car=i;S.paint=Math.max(0,PAINTS.indexOf(c.color))}buildCarPicker();save()};
+    d.innerHTML=(previewCache[kk2]?`<img src="${previewCache[kk2]}" alt="${c.name}">`:`<div class="ph">${rk&&!RCT[rk]?'loading model…':'preview'}</div>`)+`<b>${CLS_NAME[c0.kind]} <small style="color:var(--mute);font-weight:400">${dr}</small></b><div style="font-size:11px;margin:1px 0">${rk?c.name:'Sketch original'}</div><div style="font-size:10px;color:var(--mute);margin:2px 0"><span style="color:var(--acc)">${Math.round(c.eng.kw*1.341)} hp · 0-100 ${c.t100.toFixed(1)}s · ${Math.round(c.top*3.6)} km/h · ${c.mass} kg</span></div><div class="bars">${bars}</div>`;
+    d.onclick=()=>{if(S.car!==i){S.car=i;S.paint=Math.max(0,PAINTS.indexOf(c0.color))}buildCarPicker();save()};
     box.appendChild(d);
   });
+  // model list for the selected class
+  const mb=$('#models'),kind=CARS[S.car].kind,cur=S.models[kind]||'';mb.innerHTML='';
+  for(const k of['',...rcOf(kind)]){const sp=k?realSpec(k):CARS[S.car],b=document.createElement('button');b.className='small'+(k===cur?' on':'');
+    b.innerHTML=`${k?RC[k].name:'Sketch original'}<br><small>${Math.round(sp.eng.kw*1.341)} hp · ${sp.t100.toFixed(1)} s · ${Math.round(sp.top*3.6)} km/h</small>`;
+    b.onclick=()=>{S.models[kind]=k;save();buildCarPicker()};mb.appendChild(b)}
+  $('#paints').style.display=cur?'none':'';
   const p=$('#paints');p.innerHTML='<span style="font-size:13px;color:var(--mute);align-self:center">Paint</span>';
   PAINTS.forEach((c,i)=>{const s=document.createElement('div');s.className='sw'+(i===S.paint?' sel':'');s.style.background=c;s.onclick=()=>{S.paint=i;buildCarPicker();save()};p.appendChild(s)});
 }
@@ -2281,6 +2302,99 @@ function customCarModel(spec){
   return g;
 }
 
+/* ================= real car models ================= */
+// cars/<key>.glb · len = real length (m) · y0 = height of the tyre bottoms in the normalised model · f/r = [axle z, tyre radius, wheel centre x]
+// flip = model faces backwards · rm = mesh names to drop · engine/mass figures are the real car's
+const RC={
+ w14:{name:'Mercedes-AMG F1 W14',cls:'formula',len:5.6,y0:.135,f:[1.5,.36,.86],r:[-2.145,.36,.83],mass:798,kw:760,eye:[0,.96,.02],src:'AlphaHub'},
+ mcl36:{name:'McLaren MCL36',cls:'formula',len:5.6,y0:.022,f:[1.5,.36,.79],r:[-2.05,.36,.79],mass:798,kw:745,eye:[0,.94,.12],src:'Sketchfab'},
+ f458:{name:'Ferrari 458 Spider',cls:'super',len:4.53,flip:1,y0:.04,f:[1.15,.33,.84],r:[-1.49,.34,.82],mass:1430,kw:419,nm:540,tqR:6000,pwR:9000,rl:9000,cyl:8,drive:'r',idle:1000,src:'three.js examples'},
+ huracan:{name:'Lamborghini Huracán LP610-4',cls:'super',len:4.46,flip:1,y0:.014,f:[1.16,.318,.84],r:[-1.43,.343,.8],mass:1422,kw:449,nm:560,tqR:6500,pwR:8250,rl:8500,cyl:10,drive:'a',idle:1000,src:'raynocato'},
+ p992:{name:'Porsche 911 Turbo S (992)',cls:'super',len:4.54,y0:.057,f:[1.23,.33,.79],r:[-1.2,.335,.79],mass:1640,kw:478,nm:800,tqR:2500,pwR:6750,rl:7200,cyl:6,drive:'a',idle:900,src:'homework-26'},
+ mclarenf1:{name:'McLaren F1 (1993)',cls:'super',len:4.29,flip:1,y0:.008,f:[1.17,.317,.815],r:[-1.545,.345,.775],mass:1138,kw:461,nm:651,tqR:5600,pwR:7400,rl:7500,cyl:12,drive:'r',idle:850,src:'Motorpool'},
+ m8:{name:'BMW M8 Competition',cls:'super',len:4.87,y0:.307,f:[1.47,.36,.814],r:[-1.36,.36,.8],mass:1885,kw:460,nm:750,tqR:1800,pwR:6000,rl:7200,cyl:8,drive:'a',idle:750,src:'homework-26'},
+ rx7gt:{name:'Mazda RX-7 Super GT300',cls:'super',len:4.5,y0:.016,f:[1.3,.335,.842],r:[-1.25,.335,.842],mass:1150,kw:280,nm:400,tqR:6500,pwR:8500,rl:9000,cyl:4,drive:'r',idle:1200,src:'raynocato'},
+ hellcat:{name:'Dodge Challenger SRT Hellcat Redeye',cls:'muscle',len:5.03,y0:.013,f:[1.562,.376,.837],r:[-1.4,.376,.837],mass:2000,kw:594,nm:959,tqR:4500,pwR:6300,rl:6400,cyl:8,src:'rigmodels'},
+ gt500:{name:'Ford Shelby GT500 (2020)',cls:'muscle',len:4.8,y0:.138,f:[1.44,.333,.834],r:[-1.306,.343,.806],mass:1916,kw:568,nm:847,tqR:5000,pwR:7300,rl:7500,cyl:8,src:'rigmodels'},
+ mustang:{name:'Ford Mustang GT (2005)',cls:'muscle',len:4.77,y0:0,f:[1.506,.325,.808],r:[-1.295,.325,.809],mass:1560,kw:224,nm:433,tqR:4500,pwR:6000,rl:6250,cyl:8,rm:['driver'],src:'homework-26'},
+ camaro:{name:'Chevrolet Camaro SS widebody',cls:'muscle',len:4.8,y0:.044,f:[1.55,.34,.963],r:[-1.29,.35,.99],mass:1700,kw:400,nm:650,tqR:4400,pwR:6000,rl:6600,cyl:8,src:'rigmodels'},
+ nascar:{name:'NASCAR Cup Ford Mustang',cls:'muscle',len:5.0,y0:.204,f:[1.46,.338,.83],r:[-1.37,.338,.83],mass:1550,kw:500,nm:680,tqR:6500,pwR:8500,rl:9000,cyl:8,src:'rigmodels'},
+ impreza:{name:'Subaru Impreza WRC (2001)',cls:'rally',len:4.4,y0:.038,f:[1.28,.333,.759],r:[-1.228,.333,.757],mass:1230,kw:221,nm:470,tqR:4000,pwR:5500,rl:7000,cyl:4,src:'rigmodels'},
+ r34:{name:'Nissan Skyline GT-R V-Spec (R34)',cls:'rally',len:4.6,y0:.005,f:[1.336,.348,.738],r:[-1.32,.348,.724],mass:1560,kw:246,nm:392,tqR:4400,pwR:6800,rl:8000,cyl:6,rm:['glows'],src:'raynocato'},
+ p205:{name:'Peugeot 205 GTI 1.9',cls:'hatch',len:3.7,y0:0,f:[1.215,.245,.62],r:[-1.28,.245,.62],mass:875,kw:96,nm:181,tqR:4750,pwR:6000,rl:6500,cyl:4,drive:'f',src:'rigmodels'},
+ m3:{name:'BMW M3 (E46)',cls:'hatch',len:4.49,y0:.006,f:[1.48,.305,.78],r:[-1.255,.305,.78],mass:1570,kw:252,nm:365,tqR:4900,pwR:7900,rl:8000,cyl:6,drive:'r',src:'raynocato'},
+ supra:{name:'Toyota Supra RZ (Mk4)',cls:'hatch',len:4.52,y0:.012,f:[1.327,.31,.787],r:[-1.233,.31,.78],mass:1510,kw:206,nm:431,tqR:3600,pwR:5600,rl:6800,cyl:6,drive:'r',src:'raynocato'},
+ rwb:{name:'Porsche 911 RWB (964)',cls:'hatch',len:4.66,flip:1,y0:.027,f:[1.356,.272,.83],r:[-.9,.287,.77],mass:1250,kw:300,nm:500,tqR:4500,pwR:6800,rl:7200,cyl:6,drive:'r',src:'raynocato'},
+ c63:{name:'Mercedes-Benz C63 AMG (W204)',cls:'hatch',len:4.73,y0:.007,f:[1.51,.322,.765],r:[-1.2,.322,.751],mass:1730,kw:336,nm:600,tqR:5000,pwR:6800,rl:7200,cyl:8,drive:'r',src:'homework-26'},
+ m5:{name:'BMW M5 Competition (F90)',cls:'hatch',len:4.97,y0:.058,f:[1.6,.35,.817],r:[-1.39,.35,.791],mass:1940,kw:460,nm:750,tqR:1800,pwR:6000,rl:7200,cyl:8,drive:'a',src:'homework-26'},
+ sl63:{name:'Mercedes-AMG SL63',cls:'hatch',len:4.7,y0:.01,f:[1.317,.367,.83],r:[-1.341,.367,.83],mass:1970,kw:430,nm:800,tqR:2500,pwR:5500,rl:7000,cyl:8,drive:'a',src:'homework-26'},
+ g63:{name:'Mercedes-AMG G63',cls:'buggy',len:4.87,y0:.002,f:[1.545,.4,.77],r:[-1.335,.4,.77],mass:2560,kw:430,nm:850,tqR:2500,pwR:6000,rl:6500,cyl:8,drive:'a',src:'homework-26'},
+ x6m:{name:'BMW X6 M Competition',cls:'buggy',len:4.94,y0:.075,f:[1.57,.38,.848],r:[-1.39,.38,.853],mass:2370,kw:460,nm:750,tqR:1800,pwR:6000,rl:7200,cyl:8,drive:'a',src:'homework-26'},
+};
+const CLS_NAME={hatch:'Sport',muscle:'Muscle',super:'Supercar',rally:'Rally / AWD',buggy:'Off-road',formula:'Formula'};
+const rcOf=kind=>Object.keys(RC).filter(k=>RC[k].cls===kind);
+const RSPEC={};
+function realSpec(key){if(RSPEC[key])return RSPEC[key];const m=RC[key],b=CARS.find(c=>c.kind===m.cls),e={...b.eng};
+  for(const k of['kw','nm','tqR','pwR','idle'])if(m[k])e[k]=m[k];
+  const s={...b,name:m.name,model:key,mass:m.mass||b.mass,redline:m.rl||b.redline,cyl:m.cyl||b.cyl,eng:e,drive:m.drive,base:m.f[0]-m.r[0],wr:m.r[1]};
+  const pf=perf(s);s.top=pf.top;s.t100=pf.t100;s.acc=pf.F0/s.mass;
+  s.desc=`${Math.round(e.kw*1.341)} hp · ${e.nm} Nm · ${s.mass} kg · ${{f:'FWD',r:'RWD',a:'AWD'}[s.drive||PHYS[s.kind].drive]}`;return RSPEC[key]=s}
+// the player's car: a real model for the selected class, or the original sketch car
+function playerSpec(){const b=CARS[S.car],k=(S.models||{})[b.kind];return k&&RC[k]&&RC[k].cls===b.kind?realSpec(k):b}
+const RLOAD=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),RCT={},RCP={};
+function loadReal(key){if(!RC[key])return Promise.resolve(null);if(RCT[key])return Promise.resolve(RCT[key]);
+  return RCP[key]||(RCP[key]=RLOAD.loadAsync('cars/'+key+'.glb').then(g=>RCT[key]=prepReal(g,RC[key])).catch(e=>{console.warn('car model',key,e);RCP[key]=null;return null}))}
+// normalise a glTF car (orient, scale to real length, ground the tyres), bake it to the car frame and cut the four wheels out so they can spin and steer
+function prepReal(gl,cfg){
+  const root=new THREE.Group(),m=gl.scene;root.add(m);root.updateMatrixWorld(true);
+  const ms=[];m.traverse(o=>{if(o.isMesh)ms.push(o)});const bb=o=>new THREE.Box3().setFromObject(o);
+  const all=new THREE.Box3();ms.forEach(o=>all.union(bb(o)));let Sz=all.getSize(new THREE.Vector3());const big=Math.max(Sz.x,Sz.z);
+  const cs=ms.map(o=>bb(o).getCenter(new THREE.Vector3())),md=a=>a.sort((p,q)=>p-q)[a.length>>1],med=new THREE.Vector3(md(cs.map(v=>v.x)),md(cs.map(v=>v.y)),md(cs.map(v=>v.z)));
+  for(const o of ms){const b=bb(o),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());
+    if((s.y<.012*big&&s.x*s.z>.35*Sz.x*Sz.z)||(c.distanceTo(med)>.75*big&&Math.max(s.x,s.z)<.6*big)||(cfg.rm||[]).some(t=>(o.name||'').includes(t)))o.parent.remove(o)}
+  root.updateMatrixWorld(true);let B=new THREE.Box3().setFromObject(m);Sz=B.getSize(new THREE.Vector3());
+  m.rotation.y+=(Sz.x>Sz.z?Math.PI/2:0)+(cfg.flip?Math.PI:0);root.updateMatrixWorld(true);B=new THREE.Box3().setFromObject(m);Sz=B.getSize(new THREE.Vector3());
+  root.scale.setScalar(cfg.len/Sz.z);root.updateMatrixWorld(true);B=new THREE.Box3().setFromObject(root);const ctr=B.getCenter(new THREE.Vector3());
+  root.position.set(-ctr.x,-B.min.y-(cfg.y0||0),-ctr.z);root.updateMatrixWorld(true);
+  const W=[];for(const [a,front] of[[cfg.f,1],[cfg.r,0]])for(const sx of[1,-1])W.push({c:new THREE.Vector3(sx*a[2],a[1],a[0]),r:a[1],front:!!front,sx,parts:[]});
+  const body=[],v=new THREE.Vector3(),nm=new THREE.Matrix3(),L=[];let H=0;
+  root.traverse(o=>{if(!o.isMesh||!o.visible)return;const g0=o.geometry,P0=g0.attributes.position;if(!P0)return;
+    const n=P0.count,pos=new Float32Array(n*3);
+    for(let i=0;i<n;i++){v.fromBufferAttribute(P0,i);if(o.isSkinnedMesh)o.applyBoneTransform(i,v);v.applyMatrix4(o.matrixWorld);pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;if(v.y>H&&Math.abs(v.x)<.7)H=v.y}
+    L.push({o,pos})});
+  const xin=cfg.cls==='formula'?.24:.19,band=(x,w)=>{const ax=x*w.sx;return ax>Math.abs(w.c.x)-xin&&ax<Math.abs(w.c.x)+.17};
+  // refine each tyre radius from the lower half of the wheel, where nothing but tyre sits near the axle
+  for(const w of W){let mx=0;for(const {pos} of L)for(let i=0;i<pos.length;i+=3){if(!band(pos[i],w))continue;const dy=pos[i+1]-w.c.y,dz=pos[i+2]-w.c.z,d=Math.hypot(dy,dz);if(dy<-.4*d&&d<w.r*1.12&&d>mx)mx=d}
+    w.r2=mx>w.r*.92?Math.min(mx*1.012,w.r*1.05):w.r*1.03}
+  for(const {o,pos} of L){const g0=o.geometry,n=pos.length/3;
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    if(g0.attributes.normal){const N0=g0.attributes.normal,nr=new Float32Array(n*3);nm.getNormalMatrix(o.matrixWorld);for(let i=0;i<n;i++){v.fromBufferAttribute(N0,i).applyMatrix3(nm).normalize();nr[i*3]=v.x;nr[i*3+1]=v.y;nr[i*3+2]=v.z}g.setAttribute('normal',new THREE.BufferAttribute(nr,3))}
+    for(const k in g0.attributes)if(!['position','normal','tangent','skinIndex','skinWeight'].includes(k))g.setAttribute(k,g0.attributes[k]);
+    const idx=g0.index?g0.index.array:null,tri=idx?idx.length/3:n/3,I=i=>idx?idx[i]:i;
+    const out=[[],[],[],[],[]],ins=(p,w)=>{const dy=pos[p*3+1]-w.c.y,dz=pos[p*3+2]-w.c.z;return dy*dy+dz*dz<w.r2*w.r2&&band(pos[p*3],w)};
+    for(let t=0;t<tri;t++){const a=I(t*3),b=I(t*3+1),c=I(t*3+2);let dst=0;
+      for(let k=0;k<4;k++){const w=W[k];if(ins(a,w)&&ins(b,w)&&ins(c,w)){dst=k+1;break}}out[dst].push(a,b,c)}
+    const mats=[].concat(o.material);for(const mt of mats){if('envMapIntensity'in mt)mt.envMapIntensity=1.15;if(mt.map)mt.map.anisotropy=8}
+    const mk=arr=>{const gg=new THREE.BufferGeometry();for(const k in g.attributes)gg.setAttribute(k,g.attributes[k]);gg.setIndex(arr);gg.computeBoundingSphere();return gg};
+    if(out[0].length)body.push({geo:mk(out[0]),mat:o.material});
+    const fixed=/calip|bremssat/i.test(o.name+' '+[].concat(o.material).map(m=>m.name).join(' '));
+    for(let k=0;k<4;k++)if(out[k+1].length)W[k].parts.push({geo:mk(out[k+1]),mat:o.material,fixed})}
+  const zf=cfg.f[0],zr=cfg.r[0],wb=zf-zr,mid=['super'].includes(cfg.cls)&&!['m8','p992'].includes(cfg.key);
+  let eye=cfg.eye;if(!eye){// seat the driver: start behind the wheel and move forward/down until the view is clear of headrests and the roof
+    eye=[.37,Math.max(.95,H-.3),zr+wb*(mid?.52:.34)];const dm=new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),objs=body.map(p=>new THREE.Mesh(p.geo,dm)),rc=new THREE.Raycaster(),o=new THREE.Vector3(),d=new THREE.Vector3();
+    const hit=(dx,dy,dz)=>{o.set(...eye);d.set(dx,dy,dz).normalize();rc.set(o,d);rc.far=3;const h=rc.intersectObjects(objs,false)[0];return h?h.distance:9};
+    try{for(let i=0;i<14;i++){if(hit(0,-.08,1)<.42||hit(-.25,-.08,1)<.32){eye[2]+=.06;continue}if(hit(0,1,0)<.09){eye[1]-=.04;continue}break}}catch(e){}}
+  return{body,wheels:W,H,eyes:{cockpit:eye,onboard:[0,H+.28,eye[2]-.3],hood:[0,H*.78,zf-.35],bumper:[0,.42,cfg.len/2+.12],wheel:eye,mirror:null}}}
+for(const k in RC)RC[k].key=k;
+function realCarModel(key){const T=RCT[key];if(!T)return null;
+  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  for(const p of T.body){const me=new THREE.Mesh(p.geo,p.mat);me.castShadow=!(p.mat.transparent);me.receiveShadow=true;body.add(me)}
+  const wheels=[];for(const w of T.wheels){const piv=new THREE.Group(),spin=new THREE.Group();spin.name='spin';piv.position.copy(w.c);piv.add(spin);g.add(piv);
+    for(const p of w.parts){const me=new THREE.Mesh(p.geo,p.mat);me.position.copy(w.c).negate();me.castShadow=true;(p.fixed?piv:spin).add(me)}wheels.push({piv,spin,front:w.front,r:w.r})}
+  const tail=new THREE.MeshStandardMaterial({color:0x330000,emissive:0xff1a1a,emissiveIntensity:.6});
+  for(const sx of[1,-1]){const bl=new THREE.Mesh(new THREE.PlaneGeometry(.001,.001),tail);bl.visible=false;body.add(bl)}
+  g.userData={wheels,tail,body,driver:null,eyes:T.eyes,real:key,H:T.H};return g}
+
 /* ================= init ================= */
 $('#start').onclick=startRace;
 if(!S.mode)S.mode='circuit';if(!S.tod)S.tod='day';if(!S.wx)S.wx='clear';if(S.traffic==null)S.traffic=.5;
@@ -2299,7 +2413,7 @@ buildAIList();
 if(!S.raw.length)setPreset('gp');else rebuild();
 buildCarPicker();
 requestAnimationFrame(frame);
-window.__R=R;window.__S=S;window.__keys=keys;window.__tick=tick;window.__dbg={renderer,SND,REC_EQ,ENG_SETS,ENG_LEN,ENGINE_SYNTH,touch,newCar,CARS,stepCar,carModel,camera,HW:()=>HW,hwFrame:(dt)=>{hwStream(R.player);hwTraffic(dt,R.player)}};
+window.__R=R;window.__S=S;window.__keys=keys;window.__tick=tick;window.__dbg={THREE,loadReal,realCarModel,realSpec,RC,RCT,renderer,SND,REC_EQ,ENG_SETS,ENG_LEN,ENGINE_SYNTH,touch,newCar,CARS,stepCar,carModel,camera,HW:()=>HW,hwFrame:(dt)=>{hwStream(R.player);hwTraffic(dt,R.player)}};
 </script>
 </body>
 </html>

@@ -40,3 +40,7 @@ Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opp
 ### Audio credits
 - Engine loops: CC0 recordings from freesound.org — GiocoSound car engine pack (401547–401558), FreeCarSoundsGaming V8 pack (535037–535041), F1 idle & race start (181187), Lamborghini idle (112075), VW dune buggy (675200). Cut into seamless loops and crossfaded by rpm.
 - Crash and horn: [pmndrs/racing-game](https://github.com/pmndrs/racing-game) (MIT).
+
+### Car models
+24 real cars live in `game/cars/*.glb` (meshopt + WebP compressed). Each class has several, picked under the class cards; "Sketch original" keeps the procedural car. Engine power, torque, rev range, mass, drivetrain, wheelbase and tyre size come from the real car; handling character still comes from the class.
+Sources: Sketchfab artists via homework-26, raynocato/carmodels, rigmodels, Motorpool (McLaren F1), AlphaHub (Mercedes W14) and the three.js examples (Ferrari 458). For private use only.
