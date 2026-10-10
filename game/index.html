@@ -507,7 +507,7 @@ const hudMirF=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMat
 {const uv=hudMir.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,1-uv.getX(i))}
 function layoutMirror(){const W=innerWidth,H=innerHeight,w=Math.min(W*(H>W?.5:.26),400),h=w/3.4,top=(document.body.classList.contains('touch')?60:10)+h/2;
   const cx=0,cy=1-2*top/H,sx=2*w/W,sy=2*h/H;hudMir.position.set(cx,cy,0);hudMir.scale.set(sx,sy,1);hudMirF.position.set(cx,cy,0);hudMirF.scale.set(sx+8/W,sy+8/H,1)}
-const mirrorCam=new THREE.PerspectiveCamera(30,3.2,.5,900);
+const mirrorCam=new THREE.PerspectiveCamera(30,3.2,.5,420);
 
 function canvasTex(w,h,draw,srgb=true){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=MAXANI;return t}
 function speckle(g,w,h,amt,rnd){const id=g.getImageData(0,0,w,h),d=id.data;for(let i=0;i<d.length;i+=4){const n=(rnd()-.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n}g.putImageData(id,0,0)}
@@ -1637,7 +1637,7 @@ function newCar(spec,name,color,isPlayer,diff,slot){
   c.arcade=isPlayer?1-(S.handling??.35):Math.max(.85,1-(S.handling??.35));c.manual=isPlayer&&S.gearbox==='manual';c.shiftT=0;c.gear=1;c.sim=isPlayer&&S.realism==='sim';if(c.sim){c.manual=true;c.gear=0}
   c.prof=isPlayer?speedProfile(T,.9,32,6,0):speedProfile(T,spec.grip*lerp(.78,.93,diff),spec.top*lerp(.9,1,diff),spec.grip*G*.7,P.dfm);
   if(isPlayer&&model.userData.real){const e=model.userData.eyes.cockpit,cl=new THREE.PointLight(0xfff1e0,0,1.8,1.4);cl.position.set(e[0]*.5,e[1]+.05,e[2]+.35);model.userData.body.add(cl);model.userData.cabinLight=cl;model.userData.cabinI=(R.th&&R.th.night)?1.2:2.2}
-  locate(c,true);return c;
+  sbSetup(c);locate(c,true);return c;
 }
 function locate(c,full){
   const T=R.T,N=T.N;let bi=c.i,bd=1e12;
@@ -1664,9 +1664,9 @@ const tyre=(al,ap,fl=.86)=>{const x=Math.abs(al)/ap,f=x<1?Math.sin(x*Math.PI/2)*
 // two-axle (bicycle) vehicle model: slip-angle tyre forces, friction circle, load transfer, drivetrain, downforce
 function stepCar(c,dt,thr,brk,steer,hb){
   const sp=c.spec,P=c.P,m=sp.mass,a=P.a,b=P.b,L=P.L,dmg=c.dmg||0;
-  if(c.dead){thr=0;brk=Math.max(brk,.35)}if(dmg>.15)steer=clamp(steer+c.pull*(dmg-.15)*.12,-1,1);
+  if(c.dead){thr=0;brk=Math.max(brk,.35)}if(c.toePull)steer=clamp(steer-c.toePull*1.6,-1,1);
   c.onRoad=Math.abs(c.d)<=ROAD_HALF+1.1;
-  const mu=sp.grip*(c.onRoad?1:1/(1+.35*sp.off))*(R.gripMul||1)*(1-.22*dmg);
+  const mu=sp.grip*(c.onRoad?1:1/(1+.35*sp.off))*(R.gripMul||1)*(1-.22*dmg)*(1-.3*(c.lostWheels||0));
   const fx=Math.sin(c.h),fz=Math.cos(c.h);
   let u=c.vx*fx+c.vz*fz,v=c.vx*fz-c.vz*fx,r=c.r;
   const spd=Math.abs(u),delta=-steer*steerMax(c,u);c.steer=delta;
@@ -1967,8 +1967,8 @@ function startRace(){
 }
 function startRace2(){
   const hw=S.mode==='highway',dby=S.mode==='derby',key=hw?'hw'+Math.random():dby?'derby'+S.theme+S.quality:JSON.stringify([S.raw,trackOpts(),S.theme,S.quality]);
-  for(const c of R.cars){scene.remove(c.model);c.model.traverse(o=>{if(o.geometry&&(!c.model.userData.real||o.userData.own))o.geometry.dispose()})}
-  for(const d of DEB)d.life=0;R.derbyWon=0;
+  for(const c of R.cars){scene.remove(c.model);c.model.traverse(o=>{if(o.geometry&&(!c.model.userData.real||o.userData.own))o.geometry.dispose()});if(c.sb)c.sb.tex.dispose()}
+  for(const d of DEB)d.life=0;R.derbyWon=0;clearJunk();
   R.cars=[];R.player=null;
   if(HW){for(const t of HW.traffic)scene.remove(t.m);HW=null}
   ROAD_HALF=hw?9.3:dby?60:6;R.gripMul=1;if(!hw)R.th=null;
@@ -1983,9 +1983,9 @@ function startRace2(){
   const pl=newCar(playerSpec(),'YOU',PAINTS[S.paint],true,1,order.length);R.cars.push(pl);R.player=pl;
   if(R.cubeRT){R.cubeRT.dispose();scene.remove(R.cubeCam);R.cubeRT=R.cubeCam=null}
   if(S.quality>2){R.cubeRT=new THREE.WebGLCubeRenderTarget(IS_TOUCH?128:256,{type:THREE.HalfFloatType});R.cubeCam=new THREE.CubeCamera(.6,700,R.cubeRT);scene.add(R.cubeCam);
-    pl.model.traverse(o=>{if(o.isMesh&&o.material&&!Array.isArray(o.material)&&(o.material.userData.paint||o.material.metalness>.5||o.material.transparent)){if(!o.material.userData.paint)o.material=o.material.clone();o.material.envMap=R.cubeRT.texture;o.material.needsUpdate=true}})}
+    pl.model.traverse(o=>{if(o.isMesh&&o.material&&!Array.isArray(o.material)&&(o.material.userData.paint||o.material.metalness>.5||o.material.transparent)){if(!o.material.userData.paint&&!o.material.userData.sb)o.material=o.material.clone();o.material.envMap=R.cubeRT.texture;o.material.needsUpdate=true}})}
   if(th.night||(hw&&(th.overcast||th.wx==='fog')&&th.tod!=='day')){const hl=new THREE.SpotLight(0xfff2dd,400,160,.45,.5,1.1);hl.position.set(0,.8,1.6);hl.target.position.set(0,0,30);pl.model.add(hl,hl.target)}
-  try{renderer.compile(scene,camera);mirrorRT&&renderer.compile(scene,mirrorCam)}catch(e){}
+  try{renderer.compile(scene,camera);mirrorRT&&renderer.compile(scene,mirrorCam);const seen=new Set();scene.traverse(o=>{if(!o.material)return;for(const m of[].concat(o.material))for(const k in m){const t=m[k];if(t&&t.isTexture&&!seen.has(t)&&!t.isRenderTargetTexture){seen.add(t);renderer.initTexture(t)}}});if(R.cubeCam){R.player.model.visible=false;R.cubeCam.position.set(R.player.x,R.player.y+.9,R.player.z);R.cubeCam.update(renderer,scene);R.player.model.visible=true}}catch(e){console.warn(e)}
   R.time=0;R.cd=hw?2.2:4.2;R.state='countdown';$('#h-map').style.display=hw||dby?'none':'block';$('#h-lapl').textContent=dby?'CARS ':'LAP ';R.paused=false;R.finishDelay=0;R.bump=0;camState.init=false;camState.station=null;
   $('#loading').style.display='none';resize();showCam();
 }
@@ -2101,7 +2101,8 @@ function updateVisuals(dt){
     const sf=c.spec.roll||1;c.pitch=lerp(c.pitch,clamp(-c.ax*.006*sf,-.07,.07),.1);c.roll=lerp(c.roll,clamp((c.ayR??c.ay)*.0065*sf,-.1*Math.min(sf,1.6),.1*Math.min(sf,1.6)),.1);
     m.rotation.set(-Math.atan(c.grade),c.ih??c.h,0,'YXZ');
     const b=m.userData.body;b.rotation.x=c.pitch;b.rotation.z=c.roll;b.position.y=-Math.abs(c.roll)*.15-Math.min(.05,c.P.dfm*c.vf*c.vf*.0011);
-    for(const w of m.userData.wheels){w.spin.rotation.x+=(c.spinW&&!w.front?Math.max(c.vf,8)*1.6:c.vf)/w.r*dt;if(w.front)w.piv.rotation.y=c.steer}
+    for(const w of m.userData.wheels){if(w.lost)continue;w.spin.rotation.x+=(c.spinW&&!w.front?Math.max(c.vf,8)*1.6:c.vf)/w.r*dt;w.piv.rotation.y=(w.front?c.steer:0)+(w.toe||0);w.piv.rotation.z=w.camber||0}
+    if(c.lostWheels){b.rotation.z+=(c.sagX||0)*.07;b.rotation.x+=(c.sagZ||0)*.05;b.position.y-=.09*c.lostWheels}
     if(m.userData.lever){const L=m.userData.lever,gq=c.rev?0:c.gear,col=c.rev?-1:Math.ceil(gq/2)-2,fw=c.rev?-1:gq%2?1:-1;L.rotation.z=lerp(L.rotation.z,-col*.16,.3);L.rotation.x=lerp(L.rotation.x,fw*.28,.3)}
     if(m.userData.wheelInner)m.userData.wheelInner.rotation.z=-c.steer*(c.spec.kind==='formula'?5:13);
     m.userData.tail.emissiveIntensity=c.brk>0||c.vf<-.3?4:.6;
@@ -2247,13 +2248,16 @@ function frame(ts){
     const pl=R.player,e=pl.model.userData.eyes;
     if(frameN%3===0)drawCluster(pl);
   }
-  // rear view: interior mirror in closed-car cockpits, on-screen mirror for every other view
+  // main view first: it refreshes the shadow map with every car in it (the mirror and reflection passes hide the player's car,
+  // and rendering them first left the player's shadow missing on alternate frames)
+  if(composer)composer.render();else renderer.render(scene,camera);
+  // rear view and live reflections every frame at a steady cost (one cubemap face per frame) so frame times stay even
   const mdN=CAMS[R.cam],cabinMir=inside&&mdN==='Cockpit'&&R.player.model.userData.eyes.mirror,hudOn=S.mirror!==false&&!cabinMir&&mdN!=='TV'&&mdN!=='Helicopter'&&R.state!=='done';
-  if((cabinMir||hudOn)&&frameN%2===0){const pl=R.player,body=pl.model.userData.body,H=pl.model.userData.H||PROF[pl.spec.kind].H,mz=cabinMir?pl.model.userData.eyes.mirror[2]:-.2;
+  if(cabinMir||hudOn){const pl=R.player,body=pl.model.userData.body,H=pl.model.userData.H||PROF[pl.spec.kind].H,mz=cabinMir?pl.model.userData.eyes.mirror[2]:-.2;
     tmpV.set(0,H+(pl.spec.kind==='formula'?.55:.2),mz-.6);body.localToWorld(tmpV);mirrorCam.position.copy(tmpV);tmpL.set(0,H-.3,mz-30);body.localToWorld(tmpL);mirrorCam.up.copy(UP);mirrorCam.lookAt(tmpL);
     const vis=pl.model.visible;pl.model.visible=!!cabinMir;renderer.setRenderTarget(mirrorRT);renderer.render(scene,mirrorCam);renderer.setRenderTarget(null);pl.model.visible=vis}
-  if(R.cubeCam&&frameN%2===0&&R.player){const pl=R.player,m=pl.model;m.visible=false;R.cubeCam.position.set(pl.ix??pl.x,(pl.iy??pl.y)+.9,pl.iz??pl.z);R.cubeCam.update(renderer,scene);m.visible=true}
-  if(composer)composer.render();else renderer.render(scene,camera);
+  if(R.cubeCam&&R.player){const pl=R.player,m=pl.model,f=frameN%6;m.visible=false;R.cubeCam.position.set(pl.ix??pl.x,(pl.iy??pl.y)+.9,pl.iz??pl.z);R.cubeCam.updateMatrixWorld(true);
+    renderer.setRenderTarget(R.cubeRT,f);renderer.render(scene,R.cubeCam.children[f]);renderer.setRenderTarget(null);if(f===5)R.cubeRT.texture.needsPMREMUpdate=true;m.visible=true}
   if(hudOn){layoutMirror();renderer.autoClear=false;renderer.clearDepth();renderer.render(hudScene,hudCam);renderer.autoClear=true}
   drawHUD(dt);audioUpdate();
 }
@@ -2341,7 +2345,7 @@ const RC={
  mustang:{name:'Ford Mustang GT (2005)',cls:'muscle',len:4.77,y0:0,f:[1.506,.325,.808],r:[-1.295,.325,.809],mass:1560,kw:224,nm:433,tqR:4500,pwR:6000,rl:6250,cyl:8,rm:['driver'],src:'homework-26'},
  camaro:{name:'Chevrolet Camaro SS widebody',cls:'muscle',len:4.8,y0:.044,f:[1.55,.34,.963],r:[-1.29,.35,.99],mass:1700,kw:400,nm:650,tqR:4400,pwR:6000,rl:6600,cyl:8,src:'rigmodels'},
  nascar:{name:'NASCAR Cup Ford Mustang',cls:'muscle',len:5.0,y0:.204,f:[1.46,.338,.83],r:[-1.37,.338,.83],mass:1550,kw:500,nm:680,tqR:6500,pwR:8500,rl:9000,cyl:8,src:'rigmodels'},
- impreza:{name:'Subaru Impreza WRC (2001)',cls:'rally',len:4.4,y0:.038,f:[1.28,.333,.759],r:[-1.228,.333,.757],mass:1230,kw:221,nm:470,tqR:4000,pwR:5500,rl:7000,cyl:4,src:'rigmodels'},
+ impreza:{name:'Subaru Impreza WRC (2001)',cls:'rally',glass:[0,6,12],len:4.4,y0:.038,f:[1.28,.333,.759],r:[-1.228,.333,.757],mass:1230,kw:221,nm:470,tqR:4000,pwR:5500,rl:7000,cyl:4,src:'rigmodels'},
  r34:{name:'Nissan Skyline GT-R V-Spec (R34)',cls:'rally',len:4.6,y0:.005,f:[1.336,.348,.738],r:[-1.32,.348,.724],mass:1560,kw:246,nm:392,tqR:4400,pwR:6800,rl:8000,cyl:6,rm:['glows'],src:'raynocato'},
  p205:{name:'Peugeot 205 GTI 1.9',cls:'hatch',len:3.7,y0:0,f:[1.215,.245,.62],r:[-1.28,.245,.62],mass:875,kw:96,nm:181,tqR:4750,pwR:6000,rl:6500,cyl:4,drive:'f',src:'rigmodels'},
  m3:{name:'BMW M3 (E46)',cls:'hatch',len:4.49,y0:.006,f:[1.48,.305,.78],r:[-1.255,.305,.78],mass:1570,kw:252,nm:365,tqR:4900,pwR:7900,rl:8000,cyl:6,drive:'r',src:'raynocato'},
@@ -2376,6 +2380,7 @@ function loadReal(key){if(!RC[key])return Promise.resolve(null);if(RCT[key])retu
 // normalise a glTF car (orient, scale to real length, ground the tyres), bake it to the car frame and cut the four wheels out so they can spin and steer
 function prepReal(gl,cfg){
   const root=new THREE.Group(),m=gl.scene;root.add(m);root.updateMatrixWorld(true);
+  m.traverse(o=>{if(o.isMesh)for(const mt of[].concat(o.material)){const as=gl.parser&&gl.parser.associations.get(mt);if(as&&as.materials!==undefined)mt.userData.gi=as.materials}});
   const ms=[];m.traverse(o=>{if(o.isMesh)ms.push(o)});const bb=o=>new THREE.Box3().setFromObject(o);
   const all=new THREE.Box3();ms.forEach(o=>all.union(bb(o)));let Sz=all.getSize(new THREE.Vector3());const big=Math.max(Sz.x,Sz.z);
   const cs=ms.map(o=>bb(o).getCenter(new THREE.Vector3())),md=a=>a.sort((p,q)=>p-q)[a.length>>1],med=new THREE.Vector3(md(cs.map(v=>v.x)),md(cs.map(v=>v.y)),md(cs.map(v=>v.z)));
@@ -2391,21 +2396,30 @@ function prepReal(gl,cfg){
     const n=P0.count,pos=new Float32Array(n*3);
     for(let i=0;i<n;i++){v.fromBufferAttribute(P0,i);if(o.isSkinnedMesh)o.applyBoneTransform(i,v);v.applyMatrix4(o.matrixWorld);pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;if(v.y>H&&Math.abs(v.x)<.7)H=v.y}
     L.push({o,pos})});
+  const F1=cfg.cls==='formula',zF=cfg.f[0]+cfg.f[1]*(F1?1:.8),yF=F1?.45:.62,zR=cfg.r[0]-cfg.r[1]*.8,yR=.62;
   const xin=cfg.cls==='formula'?.24:.19,band=(x,w)=>{const ax=x*w.sx;return ax>Math.abs(w.c.x)-xin&&ax<Math.abs(w.c.x)+.17};
   // refine each tyre radius from the lower half of the wheel, where nothing but tyre sits near the axle
   for(const w of W){let mx=0;for(const {pos} of L)for(let i=0;i<pos.length;i+=3){if(!band(pos[i],w))continue;const dy=pos[i+1]-w.c.y,dz=pos[i+2]-w.c.z,d=Math.hypot(dy,dz);if(dy<-.4*d&&d<w.r*1.12&&d>mx)mx=d}
     w.r2=mx>w.r*.92?Math.min(mx*1.012,w.r*1.05):w.r*1.03}
   for(const {o,pos} of L){const g0=o.geometry,n=pos.length/3;
+    {let lo=0,mxY=-9;for(let i=1;i<pos.length;i+=3){if(pos[i]<-.1)lo++;if(pos[i]>mxY)mxY=pos[i]}if(lo>n*.05||mxY<.06)continue}// collapsed or ground-flat junk mesh
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
     if(g0.attributes.normal){const N0=g0.attributes.normal,nr=new Float32Array(n*3);nm.getNormalMatrix(o.matrixWorld);for(let i=0;i<n;i++){v.fromBufferAttribute(N0,i).applyMatrix3(nm).normalize();nr[i*3]=v.x;nr[i*3+1]=v.y;nr[i*3+2]=v.z}g.setAttribute('normal',new THREE.BufferAttribute(nr,3))}
     for(const k in g0.attributes)if(!['position','normal','tangent','skinIndex','skinWeight'].includes(k))g.setAttribute(k,g0.attributes[k]);
     const idx=g0.index?g0.index.array:null,tri=idx?idx.length/3:n/3,I=i=>idx?idx[i]:i;
-    const out=[[],[],[],[],[]],ins=(p,w)=>{const dy=pos[p*3+1]-w.c.y,dz=pos[p*3+2]-w.c.z;return dy*dy+dz*dz<w.r2*w.r2&&band(pos[p*3],w)};
+    const out=[[],[],[],[],[],[],[]],ins=(p,w)=>{const dy=pos[p*3+1]-w.c.y,dz=pos[p*3+2]-w.c.z;return dy*dy+dz*dz<w.r2*w.r2&&band(pos[p*3],w)};
     for(let t=0;t<tri;t++){const a=I(t*3),b=I(t*3+1),c=I(t*3+2);let dst=0;
-      for(let k=0;k<4;k++){const w=W[k];if(ins(a,w)&&ins(b,w)&&ins(c,w)){dst=k+1;break}}out[dst].push(a,b,c)}
+      // broken source geometry (vertices collapsed below the ground or far outside the car) is dropped
+      if(pos[a*3+1]<-.1||pos[b*3+1]<-.1||pos[c*3+1]<-.1||Math.abs(pos[a*3+2])>cfg.len/2+.4||Math.abs(pos[a*3])>1.6)continue;
+      for(let k=0;k<4;k++){const w=W[k];if(ins(a,w)&&ins(b,w)&&ins(c,w)){dst=k+1;break}}
+      if(!dst){const inF=p=>pos[p*3+2]>zF&&pos[p*3+1]<yF,inR=p=>pos[p*3+2]<zR&&pos[p*3+1]<yR;if(inF(a)&&inF(b)&&inF(c))dst=5;else if(!F1&&inR(a)&&inR(b)&&inR(c))dst=6}
+      out[dst].push(a,b,c)}
+    // windows/lenses that lost their transparency in the source model become real glass
+    if(cfg.glass&&!Array.isArray(o.material)&&cfg.glass.includes(o.material.userData.gi)){const gi=o.material.userData.gi;cfg._gm=cfg._gm||{};
+      o.material=cfg._gm[gi]||(cfg._gm[gi]=new THREE.MeshStandardMaterial({color:gi===cfg.glass[cfg.glass.length-1]?0xdde4ea:0x0d1419,metalness:0,roughness:.04,transparent:true,opacity:gi===cfg.glass[cfg.glass.length-1]?.18:.4,depthWrite:false,envMapIntensity:1.6}))}
     const mats=[].concat(o.material);for(const mt of mats){if('envMapIntensity'in mt)mt.envMapIntensity=1.15;if(mt.map)mt.map.anisotropy=8}
     const mk=arr=>{const gg=new THREE.BufferGeometry();for(const k in g.attributes)gg.setAttribute(k,g.attributes[k]);gg.setIndex(arr);gg.computeBoundingSphere();return gg};
-    if(out[0].length)body.push({geo:mk(out[0]),mat:o.material});
+    if(out[0].length)body.push({geo:mk(out[0]),mat:o.material});if(out[5].length)body.push({geo:mk(out[5]),mat:o.material,tag:'fb'});if(out[6].length)body.push({geo:mk(out[6]),mat:o.material,tag:'rb'});
     const fixed=/calip|bremssat/i.test(o.name+' '+[].concat(o.material).map(m=>m.name).join(' '));
     for(let k=0;k<4;k++)if(out[k+1].length)W[k].parts.push({geo:mk(out[k+1]),mat:o.material,fixed})}
   const zf=cfg.f[0],zr=cfg.r[0],wb=zf-zr,mid=['super'].includes(cfg.cls)&&!['m8','p992'].includes(cfg.key);
@@ -2417,62 +2431,144 @@ function prepReal(gl,cfg){
 for(const k in RC)RC[k].key=k;
 function realCarModel(key){const T=RCT[key];if(!T)return null;
   const g=new THREE.Group(),body=new THREE.Group();g.add(body);
-  for(const p of T.body){const me=new THREE.Mesh(p.geo,p.mat);me.castShadow=!(p.mat.transparent);me.receiveShadow=true;body.add(me)}
+  const parts={fb:new THREE.Group(),rb:new THREE.Group()};parts.fb.name='fb';parts.rb.name='rb';body.add(parts.fb,parts.rb);
+  for(const p of T.body){const me=new THREE.Mesh(p.geo,p.mat);me.castShadow=!(p.mat.transparent);me.receiveShadow=true;(p.tag?parts[p.tag]:body).add(me)}
   const wheels=[];for(const w of T.wheels){const piv=new THREE.Group(),spin=new THREE.Group();spin.name='spin';piv.position.copy(w.c);piv.add(spin);g.add(piv);
     for(const p of w.parts){const me=new THREE.Mesh(p.geo,p.mat);me.position.copy(w.c).negate();me.castShadow=true;(p.fixed?piv:spin).add(me)}wheels.push({piv,spin,front:w.front,r:w.r})}
   const tail=new THREE.MeshStandardMaterial({color:0x330000,emissive:0xff1a1a,emissiveIntensity:.6});
   for(const sx of[1,-1]){const bl=new THREE.Mesh(new THREE.PlaneGeometry(.001,.001),tail);bl.visible=false;body.add(bl)}
-  g.userData={wheels,tail,body,driver:null,eyes:T.eyes,real:key,H:T.H};return g}
+  g.userData={wheels,tail,body,driver:null,eyes:T.eyes,real:key,H:T.H,fb:parts.fb.children.length?parts.fb:null,rb:parts.rb.children.length?parts.rb:null};return g}
 
 /* ================= damage ================= */
-// Impacts dent the body: nearby vertices are pushed in along the hit direction with a smooth falloff and a little crumple noise.
-// Each car gets its own copy of a mesh's vertex positions the first time that mesh is dented (models share geometry until then).
+// Impacts feed the soft-body cage below (visual crush) and throw debris.
 // Mechanical damage (c.dmg 0..1) costs power and grip and pulls the steering; at 1 the car is wrecked (derby).
 const _dm=new THREE.Matrix4(),_dp=new THREE.Vector3(),_dd=new THREE.Vector3(),DEB=[];
 function carHit(c,wx,wz,dx,dz,dv){if(dv<2.2||S.damage==='off')return;
-  const ma=c.spec.mass,mech=S.damage!=='visual',inc=Math.pow(dv/26,2)*(c.spec.kind==='formula'?1.6:1)*(1500/Math.max(ma,700))**.35;
+  const ma=c.spec.mass,mech=S.damage!=='visual',inc=Math.pow(Math.max(0,dv-3)/34,2)*(c.spec.kind==='formula'?1.6:1)*(1500/Math.max(ma,700))**.35;
   if(mech&&!c.dead){c.dmg=Math.min(R.T.derby?1:.85,(c.dmg||0)+inc);if(c.pull===undefined)c.pull=(c.rnd?c.rnd():Math.random())<.5?-1:1;
     if(R.T.derby&&c.dmg>=1)wreck(c)}
-  const p=c.pendHit;if(!p||dv>p.dv)c.pendHit={wx,wz,dx,dz,dv};
+  sbHit(c,wx,wz,dx,dz,dv);
   const n=Math.min(14,dv*.7|0);for(let i=0;i<n;i++)debris(wx,c.y+.4+Math.random()*.4,wz,-dx*(2+Math.random()*3)+(Math.random()-.5)*3,1.5+Math.random()*3,-dz*(2+Math.random()*3)+(Math.random()-.5)*3,i%3?0x2a2a2e:0x9aa3ad)}
 function wreck(c){if(c.dead)return;c.dead=true;c.deadT=R.time;flash(c.isPlayer?'WRECKED!':c.name+' IS OUT');if(c.isPlayer)R.finishDelay=2.5}
-function dentCar(c){const h=c.pendHit;c.pendHit=null;const m=c.model,body=m.userData.body;m.updateMatrixWorld(true);
-  const amt=Math.min(.42,.05+h.dv*.024),rad=Math.min(1.35,.55+h.dv*.04),r2=rad*rad;
-  body.traverse(o=>{if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
-    const g=o.geometry;if(!g.boundingSphere)g.computeBoundingSphere();
-    _dm.copy(o.matrixWorld).invert();_dp.set(h.wx,c.y+.55,h.wz).applyMatrix4(_dm);
-    const bs=g.boundingSphere;if(bs.center.distanceTo(_dp)>bs.radius+rad)return;
-    _dd.set(h.dx,-.15,h.dz).transformDirection(_dm);
-    if(!o.userData.own){const ng=new THREE.BufferGeometry();for(const k in g.attributes)ng.setAttribute(k,g.attributes[k]);ng.setIndex(g.index);ng.groups=g.groups;
-      const P0=g.attributes.position,pa=new Float32Array(P0.count*3);for(let i=0;i<P0.count;i++){pa[i*3]=P0.getX(i);pa[i*3+1]=P0.getY(i);pa[i*3+2]=P0.getZ(i)}
-      ng.setAttribute('position',new THREE.BufferAttribute(pa,3));ng.boundingSphere=bs.clone();o.geometry=ng;o.userData.own=1}
-    const G=o.geometry,P=G.attributes.position,a=P.array,mv=new Uint8Array(P.count);let moved=0;
-    for(let i=0;i<a.length;i+=3){const x=a[i]-_dp.x,y=a[i+1]-_dp.y,z=a[i+2]-_dp.z,d2=x*x+y*y+z*z;if(d2>=r2)continue;
-      const f=1-Math.sqrt(d2)/rad,k=amt*f*f*(.65+.35*Math.sin(a[i]*37+a[i+2]*53));a[i]+=_dd.x*k;a[i+1]+=_dd.y*k;a[i+2]+=_dd.z*k;mv[i/3]=1;moved++}
-    if(!moved)return;P.needsUpdate=true;
-    // re-shade only the dented area: rebuild the normals of moved vertices from their faces
-    if(G.attributes.normal){if(!o.userData.ownN){const N0=G.attributes.normal,na=new Float32Array(N0.count*3);for(let i=0;i<N0.count;i++){na[i*3]=N0.getX(i);na[i*3+1]=N0.getY(i);na[i*3+2]=N0.getZ(i)}G.setAttribute('normal',new THREE.BufferAttribute(na,3));o.userData.ownN=1}
-      const na=G.attributes.normal.array,acc=new Float32Array(P.count*3),ix=G.index?G.index.array:null,nt=ix?ix.length:P.count;
-      for(let t=0;t<nt;t+=3){const i0=ix?ix[t]:t,i1=ix?ix[t+1]:t+1,i2=ix?ix[t+2]:t+2;if(!(mv[i0]|mv[i1]|mv[i2]))continue;
-        const ux=a[i1*3]-a[i0*3],uy=a[i1*3+1]-a[i0*3+1],uz=a[i1*3+2]-a[i0*3+2],vx=a[i2*3]-a[i0*3],vy=a[i2*3+1]-a[i0*3+1],vz=a[i2*3+2]-a[i0*3+2];
-        const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;for(const j of[i0,i1,i2])if(mv[j]){acc[j*3]+=nx;acc[j*3+1]+=ny;acc[j*3+2]+=nz}}
-      for(let j=0;j<P.count;j++)if(mv[j]){const x=acc[j*3],y=acc[j*3+1],z=acc[j*3+2],l=Math.hypot(x,y,z);if(l>1e-12){
-        // keep the original orientation convention (some models are wound the other way)
-        const sg=na[j*3]*x+na[j*3+1]*y+na[j*3+2]*z<0?-1:1;na[j*3]=sg*x/l;na[j*3+1]=sg*y/l;na[j*3+2]=sg*z/l}}
-      G.attributes.normal.needsUpdate=true}})}
 // debris: small chunks of trim and glass that fly off and bounce on the ground
 let debM=null;
 function debris(x,y,z,vx,vy,vz,col){if(!debM){const g=new THREE.BoxGeometry(.14,.05,.1);debM=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({roughness:.6,metalness:.4}),120);debM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);debM.frustumCulled=false;debM.castShadow=true;for(let i=0;i<120;i++){DEB.push({life:0,x:0,y:-99,z:0});debM.setColorAt(i,new THREE.Color(0x333333))}}
   if(debM.parent!==scene)scene.add(debM);const i=(debris.k=(debris.k||0)+1)%120,d=DEB[i];Object.assign(d,{x,y,z,vx,vy,vz,life:3,rx:Math.random()*6,ry:Math.random()*6,w:(Math.random()-.5)*20});debM.setColorAt(i,new THREE.Color(col));debM.instanceColor.needsUpdate=true}
 const _do=new THREE.Object3D();
-function updateDamage(dt){let work=0;
-  for(const c of R.cars){if(c.pendHit&&work<2){dentCar(c);work++}
+function updateDamage(dt){updateJunk(dt);
+  for(const c of R.cars){sbUpdate(c,dt);
     const dm=c.dmg||0,v=Math.abs(c.vf);
     if(dm>.55&&Math.random()<(dm-.5)*(c.dead?1.2:.5)){const fx=Math.sin(c.h),fz=Math.cos(c.h),L=(c.spec.base||2.6)/2+.6;puff(c.x+fx*L,c.y+.9,c.z+fz*L,c.dead?'#26221f':'#77736e',1.2+dm,2.2)}
     if(c.dead&&Math.random()<.35){const fx=Math.sin(c.h),fz=Math.cos(c.h),L=(c.spec.base||2.6)/2+.4;puff(c.x+fx*L,c.y+.7,c.z+fz*L,Math.random()<.5?'#ff7a1a':'#ffb347',.6,.5)}}
   if(!debM)return;for(let i=0;i<DEB.length;i++){const d=DEB[i];if(d.life<=0){_do.position.set(0,-99,0);_do.updateMatrix();debM.setMatrixAt(i,_do.matrix);continue}
     d.life-=dt;d.vy-=9.8*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;const gy=(R.T&&R.T.derby?0:(R.player?R.player.y:0))+.03;if(d.y<gy){d.y=gy;d.vy*=-.3;d.vx*=.6;d.vz*=.6;d.w*=.5}
     d.rx+=d.w*dt;_do.position.set(d.x,d.y,d.z);_do.rotation.set(d.rx,d.ry,d.rx*.7);_do.updateMatrix();debM.setMatrixAt(i,_do.matrix)}debM.instanceMatrix.needsUpdate=true}
+
+/* ================= soft-body damage ================= */
+// Each car carries a coarse cage of nodes joined by beams (every node to its 26 neighbours). Nodes are held to their place by
+// elastic-perfectly-plastic springs: up to a few cm they spring back, beyond that they yield with a constant crush force, so the
+// crush depth follows impact energy like a real crumple zone. Beams spread the crush to neighbours and also yield.
+// The body mesh is deformed on the GPU by trilinear interpolation of the cage, plus a wrinkle field that grows with the crush;
+// normals are rebuilt in the shader from the deformed surface. Wheels follow the cage (bent suspension, toe/camber, pull) and
+// fall off when their corner is smashed; bumpers/front wings break away as loose debris.
+const SBN=[5,4,10],SBHEAD=`
+uniform sampler2D sbLat;uniform vec3 sbMin;uniform vec3 sbCell;uniform vec3 sbN;uniform mat4 sbInv;uniform mat4 sbW;uniform float sbOn;
+vec3 sbAt(ivec3 i,ivec3 n){return texelFetch(sbLat,ivec2(i.x+n.x*(i.y+n.y*i.z),0),0).xyz;}
+float sbH(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+float sbNs(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+ return mix(mix(mix(sbH(i),sbH(i+vec3(1,0,0)),f.x),mix(sbH(i+vec3(0,1,0)),sbH(i+vec3(1,1,0)),f.x),f.y),mix(mix(sbH(i+vec3(0,0,1)),sbH(i+vec3(1,0,1)),f.x),mix(sbH(i+vec3(0,1,1)),sbH(i+vec3(1,1,1)),f.x),f.y),f.z);}
+vec3 sbFFD(vec3 p){ivec3 n=ivec3(sbN+.5);vec3 g=clamp((p-sbMin)/sbCell,vec3(0.),sbN-1.0001);ivec3 i=ivec3(floor(g));vec3 f=g-vec3(i);
+ vec3 d=mix(mix(mix(sbAt(i,n),sbAt(i+ivec3(1,0,0),n),f.x),mix(sbAt(i+ivec3(0,1,0),n),sbAt(i+ivec3(1,1,0),n),f.x),f.y),mix(mix(sbAt(i+ivec3(0,0,1),n),sbAt(i+ivec3(1,0,1),n),f.x),mix(sbAt(i+ivec3(0,1,1),n),sbAt(i+ivec3(1,1,1),n),f.x),f.y),f.z);
+ float m=length(d);if(m>.004)d+=(vec3(sbNs(p*6.5),sbNs(p*6.5+17.3),sbNs(p*6.5+31.7))-.5)*min(m,.5)*.42;
+ return d;}
+`,SBPOS=`vec3 transformed=vec3(position);
+if(sbOn>.5){vec3 cp=(sbInv*modelMatrix*vec4(position,1.)).xyz;transformed+=inverse(mat3(modelMatrix))*(mat3(sbW)*sbFFD(cp));}`,
+SBNRM=`vec3 objectNormal=vec3(normal);
+if(sbOn>.5){mat3 mm=mat3(modelMatrix);vec3 cp=(sbInv*modelMatrix*vec4(position,1.)).xyz;vec3 n=normalize(mat3(sbInv)*(mm*objectNormal));
+ vec3 t=normalize(cross(n,abs(n.y)<.9?vec3(0.,1.,0.):vec3(1.,0.,0.)));vec3 b=cross(n,t);const float e=.035;
+ vec3 p0=cp+sbFFD(cp),p1=cp+t*e+sbFFD(cp+t*e),p2=cp+b*e+sbFFD(cp+b*e);vec3 nn=cross(p1-p0,p2-p0);
+ if(dot(nn,nn)>1e-12){nn=normalize(nn);if(dot(nn,n)<0.)nn=-nn;objectNormal=normalize(transpose(mm)*(mat3(sbW)*nn));}}`;
+function sbMaterial(src,U,depth){const m=depth?new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}):src.clone();
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\n'+SBHEAD).replace('#include <begin_vertex>',SBPOS);
+    if(!depth)sh.vertexShader=sh.vertexShader.replace('#include <beginnormal_vertex>',SBNRM)};
+  m.customProgramCacheKey=()=>'sb'+(depth?'d':'');m.userData.sb=1;return m}
+const SBOFF=[];for(let dz=-1;dz<=1;dz++)for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dz>0||(dz===0&&(dy>0||(dy===0&&dx>0))))SBOFF.push([dx,dy,dz]);
+function sbSetup(c){if(S.damage==='off'||c.sb)return;const m=c.model,body=m.userData.body;m.updateMatrixWorld(true);
+  const inv=new THREE.Matrix4().copy(body.matrixWorld).invert(),bb=new THREE.Box3(),tb=new THREE.Box3(),mm=new THREE.Matrix4();
+  body.traverse(o=>{if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;const g=o.geometry;if(!g.boundingBox)g.computeBoundingBox();tb.copy(g.boundingBox).applyMatrix4(mm.multiplyMatrices(inv,o.matrixWorld));bb.union(tb)});
+  if(bb.isEmpty())return;bb.min.y=Math.max(bb.min.y,-.05);bb.expandByScalar(.06);
+  const [NX,NY,NZ]=SBN,N=NX*NY*NZ,size=bb.getSize(new THREE.Vector3()),cell=new THREE.Vector3(size.x/(NX-1),size.y/(NY-1),size.z/(NZ-1));
+  const R0=new Float32Array(N*3),Ks=new Float32Array(N),idx=(x,y,z)=>x+NX*(y+NY*z),hl=size.z/2,cz=(bb.min.z+bb.max.z)/2;
+  for(let z=0;z<NZ;z++)for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){const i=idx(x,y,z);R0[i*3]=bb.min.x+x*cell.x;R0[i*3+1]=bb.min.y+y*cell.y;R0[i*3+2]=bb.min.z+z*cell.z;
+    // stiff safety cell in the middle, soft crumple zones at the ends, softer roof and outer skin
+    const zf=Math.abs(R0[i*3+2]-cz)/hl;Ks[i]=(1.6-1.0*smooth(.35,.95,zf))*(y===NY-1?.75:1)*(x===0||x===NX-1?.85:1)*(c.spec.kind==='formula'?.8:1)*(c.spec.mass>1900?1.25:1)}
+  const B=[],L0=[];for(let z=0;z<NZ;z++)for(let y=0;y<NY;y++)for(let x=0;x<NX;x++)for(const[dx,dy,dz]of SBOFF){const X=x+dx,Y=y+dy,Z=z+dz;if(X<0||Y<0||Z<0||X>=NX||Y>=NY||Z>=NZ)continue;
+    const a=idx(x,y,z),b=idx(X,Y,Z);B.push(a,b);L0.push(Math.hypot(R0[a*3]-R0[b*3],R0[a*3+1]-R0[b*3+1],R0[a*3+2]-R0[b*3+2]))}
+  const data=new Float32Array(N*4),tex=new THREE.DataTexture(data,N,1,THREE.RGBAFormat,THREE.FloatType);tex.needsUpdate=true;
+  const U={sbLat:{value:tex},sbMin:{value:bb.min.clone()},sbCell:{value:cell},sbN:{value:new THREE.Vector3(NX,NY,NZ)},sbInv:{value:new THREE.Matrix4()},sbW:{value:new THREE.Matrix4()},sbOn:{value:0}};
+  const cache=new Map(),dm=sbMaterial(null,U,true);
+  body.traverse(o=>{if(!o.isMesh||!o.material||Array.isArray(o.material))return;let nm=cache.get(o.material);if(!nm){nm=sbMaterial(o.material,U);cache.set(o.material,nm)}o.material=nm;o.customDepthMaterial=dm});
+  c.sb={N,R0,X:R0.slice(),V:new Float32Array(N*3),A:R0.slice(),F:new Float32Array(N*3),Ks,B:new Int32Array(B),L0:new Float32Array(L0),Lr:new Float32Array(L0),data,tex,U,bb,cell,NX,NY,NZ,active:0,acc:0,body};
+  for(const w of m.userData.wheels)w.rest=w.piv.position.clone()}
+const _sv=new THREE.Vector3(),_sd=new THREE.Vector3(),_sm=new THREE.Matrix4();
+function sbHit(c,wx,wz,dx,dz,dv){const sb=c.sb;if(!sb)return;const body=sb.body;body.updateMatrixWorld(true);_sm.copy(body.matrixWorld).invert();
+  _sv.set(wx,c.y+.5,wz).applyMatrix4(_sm);_sd.set(dx,-.08,dz).transformDirection(_sm);
+  // the contact patch is at the cage surface nearest the hit point
+  const {N,X,V,R0,bb}=sb;_sv.x=clamp(_sv.x,bb.min.x,bb.max.x);_sv.z=clamp(_sv.z,bb.min.z,bb.max.z);_sv.y=clamp(_sv.y,bb.min.y+.15,bb.max.y-.2);
+  const rr=.75+Math.min(.6,dv*.03),gain=1.05*(S.mode==='derby'?1:.8);
+  for(let i=0;i<N;i++){const ex=X[i*3]-_sv.x,ey=(X[i*3+1]-_sv.y)*1.3,ez=X[i*3+2]-_sv.z,d=Math.sqrt(ex*ex+ey*ey+ez*ez);if(d>=rr)continue;const w=(1-d/rr)**1.5*dv*gain;
+    V[i*3]+=_sd.x*w;V[i*3+1]+=_sd.y*w;V[i*3+2]+=_sd.z*w}
+  sb.active=1.2;sb.U.sbOn.value=1}
+function sbStep(sb,h){const {N,X,V,A,F,Ks,B,L0,Lr}=sb;F.fill(0);
+  const FY=85,yA=.015,ka=FY/yA,kb=520,yB=.012;
+  for(let i=0;i<N;i++){const k=ka*Ks[i];for(let j=0;j<3;j++){const q=i*3+j;F[q]-=k*(X[q]-A[q])}}
+  for(let j=0,nb=B.length/2;j<nb;j++){const a=B[j*2]*3,b=B[j*2+1]*3,ex=X[b]-X[a],ey=X[b+1]-X[a+1],ez=X[b+2]-X[a+2],len=Math.sqrt(ex*ex+ey*ey+ez*ez)+1e-6,L=L0[j],st=(len-L)/Lr[j];
+    const f=kb*(len-L)/len;F[a]+=f*ex;F[a+1]+=f*ey;F[a+2]+=f*ez;F[b]-=f*ex;F[b+1]-=f*ey;F[b+2]-=f*ez;
+    if(Math.abs(st)>yB)L0[j]+=(len-L)*(1-yB/Math.abs(st))}
+  const dmp=Math.exp(-6*h);
+  for(let i=0;i<N;i++){const q=i*3;let ox=0,oy=0,oz=0;
+    for(let j=0;j<3;j++){V[q+j]=(V[q+j]+F[q+j]*h)*dmp;X[q+j]+=V[q+j]*h}
+    ox=X[q]-A[q];oy=X[q+1]-A[q+1];oz=X[q+2]-A[q+2];const m=Math.sqrt(ox*ox+oy*oy+oz*oz);
+    if(m>yA){const k=1-yA/m;A[q]+=ox*k;A[q+1]+=oy*k;A[q+2]+=oz*k}
+    // never crush more than ~0.9 m: the engine block / safety cell stops it
+    const dx=X[q]-sb.R0[q],dy=X[q+1]-sb.R0[q+1],dz=X[q+2]-sb.R0[q+2],dd=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dd>.9){const s=.9/dd;X[q]=sb.R0[q]+dx*s;X[q+1]=sb.R0[q+1]+dy*s;X[q+2]=sb.R0[q+2]+dz*s;A[q]=X[q];A[q+1]=X[q+1];A[q+2]=X[q+2]}}}
+function sbSample(sb,x,y,z,out){const {NX,NY,NZ,bb,cell,X,R0}=sb,gx=clamp((x-bb.min.x)/cell.x,0,NX-1.0001),gy=clamp((y-bb.min.y)/cell.y,0,NY-1.0001),gz=clamp((z-bb.min.z)/cell.z,0,NZ-1.0001);
+  const ix=gx|0,iy=gy|0,iz=gz|0,fx=gx-ix,fy=gy-iy,fz=gz-iz;out.set(0,0,0);
+  for(let k=0;k<8;k++){const ox=k&1,oy=k>>1&1,oz=k>>2&1,w=(ox?fx:1-fx)*(oy?fy:1-fy)*(oz?fz:1-fz),i=((ix+ox)+NX*((iy+oy)+NY*(iz+oz)))*3;out.x+=(X[i]-R0[i])*w;out.y+=(X[i+1]-R0[i+1])*w;out.z+=(X[i+2]-R0[i+2])*w}return out}
+const _w0=new THREE.Vector3(),_w1=new THREE.Vector3(),_w2=new THREE.Vector3();
+function sbUpdate(c,dt){const sb=c.sb;if(!sb)return;const ud=c.model.userData;
+  if(sb.U.sbOn.value){sb.body.updateMatrixWorld(true);sb.U.sbW.value.copy(sb.body.matrixWorld);sb.U.sbInv.value.copy(sb.body.matrixWorld).invert()}
+  if(sb.active<=0)return;sb.acc+=Math.min(dt,.05);const h=1/240;let n=0;while(sb.acc>=h&&n<12){sbStep(sb,h);sb.acc-=h;n++}sb.active-=n*h;
+  const {N,X,R0,data}=sb;for(let i=0;i<N;i++){data[i*4]=X[i*3]-R0[i*3];data[i*4+1]=X[i*3+1]-R0[i*3+1];data[i*4+2]=X[i*3+2]-R0[i*3+2]}sb.tex.needsUpdate=true;
+  // wheels: pushed in with the corner, toe/camber knocked out, and torn off when the corner is destroyed
+  let pull=0;for(const w of ud.wheels){if(!w.rest||w.lost)continue;const p=w.rest,sx=Math.sign(p.x)||1;
+    sbSample(sb,p.x,p.y,p.z,_w0);sbSample(sb,p.x-sx*.35,p.y,p.z,_w1);sbSample(sb,p.x,p.y,p.z+.3,_w2);
+    w.piv.position.copy(p).addScaledVector(_w0,.75);w.toe=clamp((_w2.x-_w0.x)/.3+(_w0.z-_w1.z)/.35*.6,-.35,.35);w.camber=clamp((_w0.y-_w1.y)/.35*sx,-.3,.3);
+    if(w.front)pull+=w.toe;
+    if(_w0.length()>.42&&S.damage==='full')loseWheel(c,w)}
+  c.toePull=pull;
+  // bumpers / front wing break off once their end of the cage is crushed
+  for(const tag of['fb','rb']){const g=ud[tag];if(!g||g.parent!==sb.body)continue;const zEnd=tag==='fb'?sb.bb.max.z:sb.bb.min.z;let s=0,k=0;
+    for(let i=0;i<N;i++){if(Math.abs(R0[i*3+2]-zEnd)<sb.cell.z*1.1&&R0[i*3+1]<sb.bb.min.y+sb.cell.y*1.6){s+=Math.hypot(X[i*3]-R0[i*3],X[i*3+1]-R0[i*3+1],X[i*3+2]-R0[i*3+2]);k++}}
+    if(k&&s/k>(c.spec.kind==='formula'?.12:.24))breakPart(c,g)}}
+const JUNK=[];
+function junk(obj,c,kick){scene.attach(obj);const j={obj,vx:c.vx+(Math.random()-.5)*3+kick.x,vy:2+Math.random()*2,vz:c.vz+(Math.random()-.5)*3+kick.z,wx:(Math.random()-.5)*6,wy:(Math.random()-.5)*6,wz:(Math.random()-.5)*6,r:kick.r||.3,t:0};JUNK.push(j);
+  if(JUNK.length>40){const o=JUNK.shift();scene.remove(o.obj)}return j}
+function loseWheel(c,w){if(w.lost)return;w.lost=true;c.lostWheels=(c.lostWheels||0)+1;c.lostF=(c.lostF||0)+(w.front?1:0);c.lostR=(c.lostR||0)+(w.front?0:1);c.sagX=(c.sagX||0)+Math.sign(w.rest.x);c.sagZ=(c.sagZ||0)+(w.front?1:-1);
+  const fx=Math.sin(c.h),fz=Math.cos(c.h),side=Math.sign(w.rest.x);junk(w.piv,c,{x:fz*side*3,z:-fx*side*3,r:w.r});w.piv.rotation.set(0,0,0);if(c.isPlayer)flash('LOST A WHEEL!');
+  for(let i=0;i<8;i++)debris(c.x,c.y+.4,c.z,(Math.random()-.5)*5,2+Math.random()*3,(Math.random()-.5)*5,0x3a3a3e)}
+function breakPart(c,g){const sb=c.sb;// the loose part keeps the shape the cage had when it tore off
+  const data=sb.data.slice(),tex=new THREE.DataTexture(data,sb.N,1,THREE.RGBAFormat,THREE.FloatType);tex.needsUpdate=true;
+  const U={sbLat:{value:tex},sbMin:{value:sb.U.sbMin.value.clone()},sbCell:{value:sb.U.sbCell.value.clone()},sbN:{value:sb.U.sbN.value.clone()},sbInv:{value:new THREE.Matrix4()},sbW:{value:new THREE.Matrix4()},sbOn:{value:1}};
+  const cache=new Map(),dm=sbMaterial(null,U,true);g.traverse(o=>{if(!o.isMesh)return;let nm=cache.get(o.material);if(!nm){nm=sbMaterial(o.material,U);cache.set(o.material,nm)}o.material=nm;o.customDepthMaterial=dm});
+  const j=junk(g,c,{x:0,z:0,r:.25});j.U=U;if(c.isPlayer)flash(g.name==='fb'?'BUMPER GONE!':'REAR BUMPER GONE!')}
+function updateJunk(dt){for(const j of JUNK){const o=j.obj;if(j.rest)continue;j.t+=dt;j.vy-=9.8*dt;o.position.x+=j.vx*dt;o.position.y+=j.vy*dt;o.position.z+=j.vz*dt;
+    o.rotation.x+=j.wx*dt;o.rotation.y+=j.wy*dt;o.rotation.z+=j.wz*dt;const gy=(R.T&&R.T.derby?0:(R.player?R.player.y:0))+j.r*.4;
+    if(o.position.y<gy){o.position.y=gy;j.vy=Math.abs(j.vy)*.3;j.vx*=.7;j.vz*=.7;j.wx*=.6;j.wy*=.6;j.wz*=.6;if(Math.abs(j.vy)<.4&&Math.hypot(j.vx,j.vz)<.3&&j.t>1.5)j.rest=1}
+    if(R.T&&R.T.derby){const r=Math.hypot(o.position.x,o.position.z);if(r>DERBY.RA-.5){o.position.x*=(DERBY.RA-.5)/r;o.position.z*=(DERBY.RA-.5)/r;j.vx*=-.4;j.vz*=-.4}}
+    if(j.U){o.updateMatrixWorld(true);j.U.sbW.value.copy(o.matrixWorld);j.U.sbInv.value.copy(o.matrixWorld).invert()}}
+  for(const j of JUNK)if(j.rest&&j.U&&!j.fixed){j.obj.updateMatrixWorld(true);j.U.sbW.value.copy(j.obj.matrixWorld);j.U.sbInv.value.copy(j.obj.matrixWorld).invert();j.fixed=1}}
+function clearJunk(){for(const j of JUNK)scene.remove(j.obj);JUNK.length=0}
 
 /* ================= demolition derby ================= */
 // a round dirt bowl inside a ring of concrete blocks and tyres, with a tyre-stack island in the middle.
@@ -2563,7 +2659,7 @@ buildAIList();
 if(!S.raw.length)setPreset('gp');else rebuild();
 buildCarPicker();
 requestAnimationFrame(frame);
-window.__R=R;window.__S=S;window.__keys=keys;window.__tick=tick;window.__dbg={THREE,loadReal,derbyAI,dentCar,carHit,realCarModel,realSpec,RC,RCT,renderer,SND,REC_EQ,ENG_SETS,ENG_LEN,ENGINE_SYNTH,touch,newCar,CARS,stepCar,carModel,camera,HW:()=>HW,hwFrame:(dt)=>{hwStream(R.player);hwTraffic(dt,R.player)}};
+window.__R=R;window.__S=S;window.__keys=keys;window.__tick=tick;window.__dbg={THREE,loadReal,derbyAI,carHit,sbStep,updateVisuals,realCarModel,realSpec,RC,RCT,renderer,SND,REC_EQ,ENG_SETS,ENG_LEN,ENGINE_SYNTH,touch,newCar,CARS,stepCar,carModel,camera,HW:()=>HW,hwFrame:(dt)=>{hwStream(R.player);hwTraffic(dt,R.player)}};
 </script>
 </body>
 </html>

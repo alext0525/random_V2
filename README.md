@@ -44,3 +44,6 @@ Draw a track, tune hilliness / corner tightness / length, pick a car, add AI opp
 ### Car models
 24 real cars live in `game/cars/*.txt` (base64 of a gzipped GLB with WebP textures, decoded in the page). Each class has several, picked under the class cards; "Sketch original" keeps the procedural car. Engine power, torque, rev range, mass, drivetrain, wheelbase and tyre size come from the real car; handling character still comes from the class.
 Sources: Sketchfab artists via homework-26, raynocato/carmodels, rigmodels, Motorpool (McLaren F1), AlphaHub (Mercedes W14) and the three.js examples (Ferrari 458). For private use only.
+
+### Damage
+Each car carries a soft-body cage (5×4×10 nodes, every node beamed to its neighbours) with elastic-plastic springs: small knocks spring back, big ones crush in proportion to impact energy, with a stiff middle cell and softer crumple zones. The body mesh is bent on the GPU from the cage, with wrinkles and rebuilt normals. Wheels follow the cage (pushed in, toe and camber knocked out, steering pull) and come off when their corner is destroyed; bumpers and F1 front wings break away as debris.
