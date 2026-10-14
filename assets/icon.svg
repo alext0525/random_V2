@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f8bff"/><stop offset="1" stop-color="#1d46c9"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <!-- back page (merge/split hint) -->
+  <rect x="78" y="34" width="120" height="156" rx="12" fill="#fff" opacity=".45"/>
+  <!-- front page with folded corner -->
+  <path d="M58 52a12 12 0 0 1 12-12h72l46 46v118a12 12 0 0 1-12 12H70a12 12 0 0 1-12-12z" fill="#fff"/>
+  <path d="M142 40v34a12 12 0 0 0 12 12h34z" fill="#c9d8ff"/>
+  <!-- PDF band -->
+  <rect x="38" y="128" width="148" height="62" rx="10" fill="#ff5a3c"/>
+  <text x="112" y="173" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="46" fill="#fff" letter-spacing="2">PDF</text>
+  <!-- tool dots -->
+  <circle cx="88" cy="104" r="6" fill="#1d46c9"/><circle cx="108" cy="104" r="6" fill="#1d46c9" opacity=".6"/><circle cx="128" cy="104" r="6" fill="#1d46c9" opacity=".3"/>
+</svg>
